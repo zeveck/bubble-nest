@@ -16,6 +16,11 @@
 - Credit: Rich Conlan (from GitHub)
 - Available: imagegen2, nanogen, audiogen (paid plan: 128 kbps worked; no credit line), meshgen (2,497 credits), playwright-cli, Pillow (installed this run)
 
+## Published
+
+- Requests: `--publish` (DNS added by the person: "I added it to DNS. Go ahead.")
+- Live at https://bubblenest.synapticnoise.com (HTTPS on), repo zeveck/bubble-nest, listed first on synapticnoise.com. Credit confirmed: Rich Conlan.
+
 ## Phases
 
 - [x] 1 Brief: written (BRIEF.md)
