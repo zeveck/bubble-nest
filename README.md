@@ -76,20 +76,6 @@ The request was to do all three, and to make the tank much nicer to swim in:
 
 > Do each of the three Ideas for next you proposed and update the README to include the proposal and running of them, with this and them quoted as part of the making of. I like the tank, but I can't control the betta enough to feel like I'm swimming around, and can't easily get into the tube. We def need to improve the playability of this part as it should be key and its how you start.
 
-While it was being built, a few more notes came in:
-
-> The social card / docs shouldn't mention Pac-Man at all. It's just pipes.
-
-> (other than where quoting my prompt)
-
-> don't mention the bubble floating fish room
-
-> the bubble that floats in 3d around the room to change worlds is a surprise :)
-
-> It says Pac-Man on https://synapticnoise.com/ right now for it
-
-> The README can mention it if it outlines game features, but shouldn't spoil it up front
-
 What changed:
 
 - **Swimming in the tanks:** you now click or tap where you want to go (or hold and steer), and keyboard swimming follows the camera. The fish turns faster, the camera looks in through the clear glass instead of hugging the walls, and it holds still while you steer. The tube is easier to enter, and a **To the pipes** sign (with an arrow when it's off screen) can be tapped to swim straight up into it. A review agent checked the new controls before they were built, and it was play-tested with mouse-only, touch-only and keyboard runs. With the mouse alone, a new player eats every starting bite and is in the pipes in about seven seconds of play.
