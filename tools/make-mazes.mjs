@@ -37,7 +37,10 @@ const DESIGN = [
   T('nn-m4', 'Mirror Hall', 25, 15, 150, 'jelly crayfish shrimp shrimp snail', 'nn-m3:3 nn-lady-4 nn-m5:1', ['portals', 'jelly'], ['currents', 'valves']),
   T('nn-m5', 'Glow Garden', 27, 15, 156, 'jelly crayfish shrimp shrimp snail', 'nn-m4:3 nn-lady-5 nn-empty-2 nn-m6:1', ['currents', 'jelly'], ['valves']),
   T('nn-m6', 'Night Market', 27, 15, 162, 'jelly jelly crayfish shrimp shrimp', 'nn-m5:4 nn-lady-6 nn-m7:1 nn-m1:4', ['valves', 'jelly'], []),
-  T('nn-m7', 'Midnight Snack', 27, 15, 168, 'jelly jelly crayfish shrimp shrimp', 'nn-m6:3 nn-lady-7', ['jelly'], [], [6, 6]),
+  T('nn-m7', 'Midnight Snack', 27, 15, 168, 'jelly jelly crayfish shrimp shrimp', 'nn-m6:3 nn-lady-7 nn-gm:1', ['jelly'], [], [6, 6]),
+  // Change 1, idea 2: the optional Grand Maze off nn-m7's top (the only one-exit maze;
+  // the only maze with the boss `king`; every mechanic at once).
+  T('nn-gm', 'The Grand Maze', 31, 17, 200, 'jelly jelly shrimp shrimp crayfish king', 'nn-m7:3', ['wrap', 'currents', 'valves', 'portals', 'jelly'], [], [6, 6]),
 ];
 const WORLD_OF = { cw: 'cw', cp: 'cp', nn: 'nn' };
 const SPEED = 4;            // cells per second at 1.0x (design: you = 1.0 = 4 cells/s)
@@ -118,6 +121,7 @@ function build(file) {
   }
   const exitIds = Object.keys(exits).map(Number).sort();
   const designExits = D.exits.split(' ');
+  if (exitIds.length < 2 && id !== 'nn-gm') E('only nn-gm may have a single exit');
   if (exitIds.length !== designExits.length || exitIds.some((n, i) => n !== i + 1))
     E(`exits ${exitIds.join(',')} but design has ${designExits.length}`);
   for (const [k, e] of Object.entries(exits)) if (wrapRows.has(e.y) && (e.dir === 'L' || e.dir === 'R')) E(`exit ${k} on wrap row ${e.y}`);
@@ -274,7 +278,8 @@ function build(file) {
   }
   const enemies = []; const toks = (head.enemies || '').split(/\s+/).filter(Boolean);
   for (const t of toks) {
-    const m = t.match(/^(snail|shrimp|crayfish|jelly)@S(\d+)$/);
+    const m = t.match(/^(snail|shrimp|crayfish|jelly|king)@S(\d+)$/);
+    if (m && m[1] === 'king' && id !== 'nn-gm') E('king (boss) only allowed in nn-gm');
     if (m) { enemies.push({ type: m[1], spawn: +m[2] - 1 }); continue; }
     const k2 = t.match(/^(loop|phase)=(.+)$/);
     if (k2 && enemies.length) { enemies[enemies.length - 1][k2[1]] = k2[1] === 'phase' ? +k2[2] : k2[2]; continue; }
@@ -402,6 +407,7 @@ if (!CHECK_ONLY) {
     const m = MAZES[id];
     const lines = Object.entries(m).map(([k, v]) => {
       if (k === 'grid') return `    grid: [\n${v.map(r => '      ' + JSON.stringify(r)).join(',\n')},\n    ]`;
+      if (k === 'paths' && !Object.keys(v).length) return '    paths: {}';
       if (k === 'paths') return `    paths: {\n${Object.entries(v).map(([a, b]) => `      '${a}': ${JSON.stringify(b)}`).join(',\n')},\n    }`;
       return `    ${k}: ${JSON.stringify(v)}`;
     });

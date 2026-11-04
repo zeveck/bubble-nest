@@ -1,0 +1,26 @@
+id: nn-gm
+name: The Grand Maze
+exits: 1=nn-m7:3
+enemies: king@S1 jelly@S2 loop=RRDDDDLLLLUUUURR phase=0 jelly@S3 loop=LLDDDDRRRRUUUULL phase=1.25 shrimp@S4 shrimp@S5 crayfish@S6
+symmetric: yes
+valves: open 3 shut 3
+valve G2: phase 1.5
+signature: the grand hall: King Claw's throne row along the top, a clockwise current ring round a central arena (two gates on the wrap row), a diagonal portal shortcut, two jelly squares and 6 brine shrimp
+---
+###############################
+#o.............S.............o#
+#.###.#####.#######.#####.###.#
+#..a..#####.#######.#####.....#
+#.###.#####.#######.#####.###.#
+#.#..S..#>>>>>>>>>>>>v#..S..#.#
+#.#.###.#^#####.#####v#.###.#.#
+W...###.G^#....S....#vG.###...W
+###.###.#^#o#######o#v#.###.###
+###.....#^#.........#v#.....###
+###.#####^#####.#####v#####.###
+#..S..###^<<<<<<<<<<<<###..S..#
+#.###.###.###########.###.###.#
+#.....#.....#######.....#..b..#
+#.#####.###.#######.###.#####.#
+#o...........................o#
+###############1###############

@@ -5,7 +5,7 @@
 ## Pitch
 
 You're a betta in a little tank with a glass tube hanging into it. Swim up the
-tube and the world turns into a glowing Pac-Man-style network of water pipes:
+tube and the world turns into a glowing arcade maze of water pipes:
 munch trails of betta bites, flare your gills at snails and shrimp, and follow
 branching pipes to other tanks. Claim empty tanks with a bubble nest, court
 lady bettas, raise their fry, and become each new fish. Three pipe worlds,
@@ -94,7 +94,7 @@ the manifest asks for landscape. `contextmenu` is prevented on the canvas.
 | Move | Arrows / WASD | Swipe anywhere outside the stick zone and buttons (24 px threshold); or hold the stick (dominant axis) |
 | Move (mouse) | Hold left mouse: pointer is raycast onto the maze plane; heading = dominant axis from fish to pointer in grid space, with hysteresis (switch axis only when the other is 25% larger) | n/a |
 | Turn buffer | A requested turn is held until taken, replaced by another, or 2 junctions have passed; a small arrow on the fish shows the queued turn | same |
-| Stop | None: the fish keeps swimming until a wall, like Pac-Man | n/a |
+| Stop | None: the fish keeps swimming until it hits a wall | n/a |
 | Map / Pause / Mute | Tab / Esc or P / M | Buttons top-right |
 
 On every mode change held inputs and the turn buffer are cleared, and input
@@ -875,3 +875,46 @@ with exit icons, the economy check.
 - [ ] Music loops without an audible seam; sound plays after first input; mute works.
 - [ ] Save restores mid-world after reload; old/unknown fields migrate or drop safely.
 - [ ] Installs as an app and works offline (`?sw=1`).
+
+## Change 1: tank playability, nest celebration, Grand Maze, school
+
+Request (exactly as typed): "Do each of the three Ideas for next you proposed and update the README to include the proposal and running of them, with this and them quoted as part of the making of. I like the tank, but I can't control the betta enough to feel like I'm swimming around, and can't easily get into the tube. We def need to improve the playability of this part as it should be key and its how you start."
+
+### Tank controls (rework)
+
+Problem: steering by pointer offset while holding the button felt indirect; the fish turned slowly; the camera hugged walls; the tube mouth was small and up behind the camera.
+
+- **Point and swim (mouse and touch):** press on the tank and the fish swims toward the 3D spot under the pointer, for as long as you hold, following the pointer as it moves. A quick tap/click sets a waypoint (a ring ripple marks it) and the fish swims there and stops. Spots are found by raycasting against bites, the tube mouth, the nest leaf, fish, props and the tank walls/floor/surface (inside the water box). Tapping the tube mouth or its glow swims you up into it.
+- **Keyboard, camera-relative:** W/Up swims away from the camera, S/Down toward it, A/D (Left/Right) turn left/right (the camera follows), Space rises, Shift dives. Holding W also pitches toward where the camera looks.
+- **Look around:** right-drag (desktop) or a one-finger drag that starts on empty space and moves more than 12 px (touch). The camera eases back behind the fish 1.5 s after you let go.
+- **Touch stick** stays (bottom-left), camera-relative, plus rise/dive buttons.
+- **Snappier fish:** turn rate up to 4.5 rad/s, acceleration time ~0.2 s, cruise 4 u/s, 5.5 u/s after 1 s.
+- **Camera:** 3.4 u behind and 1.2 u above the direction of travel, looking slightly ahead, kept inside the water and pulled toward the tank centre near walls (never a wall-filling view).
+- **Tube:** capture radius 1.3 u around the mouth from below, plus a gentle pull when within 2.2 u and moving upward; the mouth ring glows brighter and a "To the pipes" label (or an edge arrow when off screen) always shows where it is. A "Back to the pipes" button is always available in a tank once the start-tank bites are eaten (autopilot, any input cancels).
+- **First visit:** the fish starts facing the floating bites with the tube in view; the tip sequence is "Click (tap) where you want to swim" → "Eat the bites on top" → "Tap the tube, or swim up into it".
+
+### Nest framing and celebration (idea 1)
+
+- While building and courting, the camera moves to a framed view under the leaf at a 3/4 angle (leaf, foam, lady and fish all in shot) and eases back after.
+- When the nest finishes: the foam flashes and settles, a ring of sparkles and confetti bubbles bursts from it, a celebration jingle (reuse `grown`) plays, the fish does a happy loop, and a card-free toast says "Bubble nest built!" (lady tanks: "Eggs laid! They hatch in N bites."). Reduce motion skips the camera move.
+
+### The Grand Maze (idea 2)
+
+- **Where:** a new exit (3) on nn-m7's top border leads to `nn-gm`, "The Grand Maze". Its sign shows a lock and "Grand Maze: 15 bettas (you have N)" until you've collected 15; the exit mouth is sealed (a glowing gate) until then. A toast fires when you reach 15: "The Grand Maze in Neon Night is open!".
+- **The maze:** 31x17, dark, everything at once: a current loop, two valves, a portal pair, a wrap row, 2 jellies, 2 shrimp, 1 crayfish, 6 brine shrimp, ~200 bites. One exit (back to nn-m7).
+- **The boss, King Claw:** a big glowing crayfish (1.8x size). It always chases you by the shortest path at 0.75 speed and costs 10 bites per hit. It can't be hurt normally; while you're flaring, bumping it stuns it (it flashes and swims home for 3 s). Three bumps and it gives up: it shrinks and scuttles off, 60 bites burst out, toast "You beat King Claw!", a gold star on the Map, and the "Crown" bubble trail (gold stars) unlocks. Flare lasts 6 s in the Grand Maze. Beating it is optional (not needed for the 20 fish).
+- Saved: `grandWon`. Map shows the Grand Maze node (locked/unlocked/beaten).
+
+### Your school (idea 3)
+
+- In the pipes, up to 4 of your collected fish (most recent first, not the one you are) follow you in a line, each 0.9 cells behind the last along the exact path you swam, at 0.75 scale, wiggling and turning as you did. They are cosmetic: enemies ignore them. They vanish into the exit with you and pop out after you on arrival.
+- Settings: "Your school follows you" on/off (default on). Draw calls: +3 per fish (≤ 12).
+
+### Definition of done (change)
+
+- [ ] A new player can, with the mouse alone and with touch alone, swim to every bite in the start tank and into the tube within 30 s (scripted with real input).
+- [ ] Keyboard: W/A/S/D/Space/Shift steer camera-relatively; the tube is reachable.
+- [ ] Nest celebration plays (empty and lady tanks), camera frames it, returns.
+- [ ] nn-m7 exit 3 is sealed below 15 bettas and open at 15; the Grand Maze passes make-mazes; King Claw can be beaten; reward saved; solve() crosses nn-m7's new exit pairs.
+- [ ] School follows in every world with no errors; off in Settings works.
+- [ ] All 170+ exit pairs and the fast e2e run still pass.

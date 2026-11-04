@@ -1,7 +1,7 @@
 # Brief: Bubble Nest
 
 **In one sentence:** You're a betta fish who swims up out of a little tank into a
-glowing network of water tubes, munching betta bites Pac-Man style, finding new
+glowing network of water tubes, munching trails of betta bites, finding new
 tanks, building bubble nests, raising fry and becoming them, until you've
 collected all 20 bettas.
 
@@ -17,7 +17,7 @@ stress, no story to read. Just "ooh, what's down that pipe?" and "one more fry".
 - [ ] A water-filled tube comes down from the top of the tank; swim up into it.
 - [ ] Inside the tubes: still rendered in 3D, but mechanically 2D, "almost like Pac-Man", swimming.
 - [ ] Core mechanic: eating betta bites.
-- [ ] Tubes are mazes, Pac-Man-like difficulty: munch bites, avoid enemies; they branch like pipes.
+- [ ] Tubes are mazes, "similar to Pac Man difficulty": munch bites, avoid enemies; they branch like pipes.
 - [ ] The tubes lead to other tanks: some empty, some with a female betta.
 - [ ] Empty tank + Z bites: claim it by making a bubble nest.
 - [ ] Female tank: make a bubble nest, she lays fry, they hatch after you gain N more bites, they grow up after M more bites, and you can switch to being the grown fry.
@@ -33,7 +33,7 @@ stress, no story to read. Just "ooh, what's down that pipe?" and "one more fry".
 
 ## Who, where, how long
 
-- Anyone, kids to adults; casual players who like Pac-Man and collecting.
+- Anyone, kids to adults; casual players who like classic arcade mazes and collecting.
 - Desktop (mouse + keyboard) and phones (touch), landscape.
 - Sessions of 5 to 20 minutes; the full collection takes about an hour or more.
   Progress saves automatically.
@@ -43,9 +43,9 @@ stress, no story to read. Just "ooh, what's down that pipe?" and "one more fry".
 None given. Our own direction: bright, glossy, toy-like 3D. Jewel-toned bettas with
 flowing, translucent fins; clean aquarium glass and greenery. Each world has its
 own pipe material and backdrop: clear glass, warm copper, glowing neon.
-Borrow from Pac-Man: grid mazes with looping corridors, dots, a power pellet that
-turns the tables, enemies with simple distinct chase personalities, wrap-around
-tunnels. Do not copy Pac-Man's look, ghosts, names, sounds or maze layouts.
+Borrow the feel of classic arcade mazes: grid mazes with looping corridors, trails of food, a
+power-up that turns the tables, enemies with simple distinct chase personalities, wrap-around
+tunnels. Copy no existing game's look, characters, names, sounds or maze layouts.
 
 ## Settings and decisions made on their behalf
 

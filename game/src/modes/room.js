@@ -189,13 +189,21 @@ export class RoomMode {
     let fwd = 0, yawRate = 0, rise = 0, pitchT = null;
     if (!input.enabled) return { fwd, yawRate, rise, pitchT };
     const touch = isTouch();
-    if (input.pointer.down && !touch) {
-      const nx = (input.pointer.x - innerWidth / 2) / (innerWidth / 2), ny = (input.pointer.y - innerHeight / 2) / (innerHeight / 2);
-      const dz = (v) => Math.abs(v) < 0.08 ? 0 : (v - Math.sign(v) * 0.08) / 0.92;
-      yawRate = -dz(nx) * 1.8 * sens; pitchT = -dz(ny) * 0.9 * (s.invert ? -1 : 1); fwd = 1;
+
+    const hold = input.holding();
+    const tap = input.takeTap();
+    const rayPoint = (x, y) => { const r = new THREE.Raycaster(); r.setFromCamera(new THREE.Vector2(x / innerWidth * 2 - 1, -(y / innerHeight) * 2 + 1), this.camera); const d = r.ray.direction.clone(); return this.camera.position.clone().addScaledVector(d, 2.6); };
+    if (tap) this.waypoint = rayPoint(tap.x, tap.y);
+    const aim = hold ? rayPoint(hold.x, hold.y) : this.waypoint;
+    if (aim) {
+      tmp.subVectors(aim, this.p); const dist = tmp.length();
+      if (!hold && dist < 0.3) this.waypoint = null;
+      let d = Math.atan2(tmp.x, tmp.z) - this.yaw; d = Math.atan2(Math.sin(d), Math.cos(d));
+      yawRate = THREE.MathUtils.clamp(d * 4, -2.5, 2.5); pitchT = Math.atan2(tmp.y, Math.hypot(tmp.x, tmp.z)); fwd = dist > 0.3 ? 1 : 0;
+      if (hold) this.waypoint = null;
     }
-    if (input.held('KeyW', 'ArrowUp')) fwd = 1;
-    if (input.held('KeyS', 'ArrowDown')) fwd = -0.6;
+    if (input.held('KeyW', 'ArrowUp')) { fwd = 1; this.waypoint = null; }
+    if (input.held('KeyS', 'ArrowDown')) { fwd = -0.6; this.waypoint = null; }
     if (input.held('KeyA', 'ArrowLeft')) yawRate = 1.6 * sens;
     if (input.held('KeyD', 'ArrowRight')) yawRate = -1.6 * sens;
     if (input.held('Space', 'KeyR') || input.rise) rise = 1;
@@ -204,6 +212,7 @@ export class RoomMode {
     if (input.stick.active) {
       const sx = input.stick.x, sy = input.stick.y, mag = Math.min(1, Math.hypot(sx, sy));
       if (mag > 0.15) {
+        this.waypoint = null;
         const want = this.yaw + this.camYawOff + Math.atan2(-sx, sy);
         let d = want - this.yaw; d = Math.atan2(Math.sin(d), Math.cos(d));
         yawRate = THREE.MathUtils.clamp(d * 3, -2.2, 2.2); fwd = mag * (Math.abs(d) > 2.4 ? 0.3 : 1);

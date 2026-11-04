@@ -17,7 +17,8 @@ function track(p) {
 export function loadModel(name) {
   if (models[name]) return Promise.resolve(models[name]);
   if (pending['m:' + name]) return pending['m:' + name];
-  const p = track(gltfLoader.loadAsync(`assets/models/${name}.glb`).then(gltf => {
+  const tryLoad = async () => { for (let i = 0; ; i++) { try { return await gltfLoader.loadAsync(`assets/models/${name}.glb`); } catch (e) { if (i >= 3) throw e; await new Promise(r => setTimeout(r, 600 * (i + 1))); } } };
+  const p = track(tryLoad().then(gltf => {
     gltf.scene.updateMatrixWorld(true);
     const geos = [], mats = [];
     gltf.scene.traverse(o => {

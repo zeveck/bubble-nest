@@ -128,10 +128,15 @@ export class UI {
   pipeExit() { this.labels.innerHTML = ''; this.pips.innerHTML = ''; this.labelEls = {}; }
   exitInfo(target) {
     if (!target) return { icon: 'arrows', text: '' };
-    if (target.includes(':')) { const mz = target.split(':')[0]; const m = MAZES[mz]; const st = progress.s.stars[mz] || 0; return { icon: 'arrows', text: m.name, stars: st, kind: 'maze' }; }
+    if (target.includes(':')) {
+      const mz = target.split(':')[0]; const m = MAZES[mz]; const st = progress.s.stars[mz] || 0; const nd = NODES[mz];
+      if (nd?.locked?.bettas && progress.s.collected.length < nd.locked.bettas) return { icon: 'lock', text: `${m.name}: ${nd.locked.bettas} bettas (you have ${progress.s.collected.length})`, kind: 'maze', afford: false };
+      if (nd?.boss) return { icon: 'star', text: progress.s.grandWon ? `${m.name}: King Claw beaten!` : `${m.name}: beat King Claw!`, stars: st, kind: 'maze' };
+      return { icon: 'arrows', text: m.name, stars: st, kind: 'maze' };
+    }
     const n = NODES[target];
     if (!n) return { icon: 'arrows', text: '' };
-    if (n.type === 'machine') return { icon: 'bubble', text: 'To the Fish Room', kind: 'machine' };
+    if (n.type === 'machine') return { icon: 'bubble', text: progress.s.roomFound ? 'To the Fish Room' : 'A bubble machine?', kind: 'machine' };
     const t = progress.s.tanks[target];
     if (progress.isHome(target)) {
       const fs = progress.fryStatus(target);
@@ -229,20 +234,27 @@ export class UI {
   }
 
   tankUpdate(tank) {
-    const l = tank.leafScreen();
-    let el = this.labelEls.leaf;
-    if (!el) { el = h('div', 'exitlabel leaf'); this.labels.appendChild(el); this.labelEls.leaf = el; el.innerHTML = `<span class="ic k-lady">${ICON.bubble}</span><span class="tx">Nest spot</span>`; }
-    let pip = this.labelEls.leafPip;
-    if (!pip) { pip = h('div', 'pip gold', ICON.up); this.pips.appendChild(pip); this.labelEls.leafPip = pip; }
-    el.hidden = !l || !l.on;
-    pip.hidden = !l || l.on;
     const W = innerWidth, H = innerHeight;
-    if (l && l.on) el.style.transform = `translate(${Math.max(70, Math.min(W - 70, l.x))}px, ${Math.max(80, l.y - 30)}px) translate(-50%, -50%)`;
-    if (l && !l.on) {
-      let nx = l.nx, ny = l.ny; if (l.behind) { nx = -nx; ny = -ny; }
-      const k = 1 / Math.max(Math.abs(nx), Math.abs(ny), 0.001); nx *= k; ny *= k;
-      const cx = W / 2 + nx * (W / 2 - 40), cy = H / 2 - ny * (H / 2 - 90);
-      pip.style.transform = `translate(${cx}px, ${Math.max(84, Math.min(H - 40, cy))}px) translate(-50%,-50%) rotate(${Math.atan2(-ny, nx) + Math.PI / 2}rad)`;
+    const marks = [
+      { id: 'leaf', s: tank.leafScreen(), html: `<span class="ic k-lady">${ICON.bubble}</span><span class="tx">Nest spot</span>`, cls: 'gold' },
+      { id: 'tube', s: tank.tubeScreen(), html: `<span class="ic k-maze">${ICON.up}</span><span class="tx">To the pipes</span>`, cls: 'tube', tap: () => tank.goTube() },
+    ];
+    for (const m of marks) {
+      let el = this.labelEls[m.id], pip = this.labelEls[m.id + 'Pip'];
+      if (!el) {
+        el = h('div', 'exitlabel ' + (m.tap ? 'tappable' : '')); el.innerHTML = m.html; this.labels.appendChild(el); this.labelEls[m.id] = el;
+        pip = h('div', 'pip ' + m.cls + (m.tap ? ' tappable' : ''), ICON.up); this.pips.appendChild(pip); this.labelEls[m.id + 'Pip'] = pip;
+        if (m.tap) for (const e of [el, pip]) e.addEventListener('pointerdown', (ev) => { ev.preventDefault(); ev.stopPropagation(); m.tap(); });
+      }
+      const l = m.s;
+      el.hidden = !l || !l.on; pip.hidden = !l || l.on;
+      if (l && l.on) el.style.transform = `translate(${Math.max(80, Math.min(W - 80, l.x))}px, ${Math.max(90, Math.min(H - 60, l.y - 30))}px) translate(-50%, -50%)`;
+      if (l && !l.on) {
+        let nx = l.nx, ny = l.ny; if (l.behind) { nx = -nx; ny = -ny; }
+        const k = 1 / Math.max(Math.abs(nx), Math.abs(ny), 0.001); nx *= k; ny *= k;
+        const cx = W / 2 + nx * (W / 2 - 40), cy = H / 2 - ny * (H / 2 - 90);
+        pip.style.transform = `translate(${cx}px, ${Math.max(90, Math.min(H - 40, cy))}px) translate(-50%,-50%) rotate(${Math.atan2(-ny, nx) + Math.PI / 2}rad)`;
+      }
     }
   }
   roomUpdate(room) {
@@ -321,7 +333,7 @@ export class UI {
         <section><h3>${ICON.fish} Tanks</h3><p>${t ? 'Push the stick to swim. Drag on the right to look around. Use the arrow buttons to rise and dive.' : 'Hold the left mouse button to swim toward the pointer, or use WASD. Space rises, Shift dives. Right-drag to look around.'}</p><p>Eat the bites on top, then swim up into the tube.</p></section>
         <section><h3>${ICON.arrows} Pipes</h3><p>${t ? 'Swipe to turn.' : 'Arrow keys or WASD to turn.'} Munch every bite for a star, without a bump for two. Enemies knock bites loose; grab a brine shrimp to flare and chase them off!</p></section>
         <section><h3>${ICON.heart} Nests and fry</h3><p>Swim to the floating leaf to build a bubble nest. Ladies lay eggs, which hatch and grow as you eat bites anywhere. Become each grown fry to collect all 20.</p></section>
-        <section><h3>${ICON.star} Frenzy and worlds</h3><p>Nest with every lady in a world and fry there grow twice as fast. Bubble machines lead to the Fish Room and new worlds.</p></section>
+        <section><h3>${ICON.star} Frenzy and worlds</h3><p>Nest with every lady in a world and fry there grow twice as fast. Find the bubble machine at the end of a world to reach the next one.</p></section>
       </div><div class="row"><button class="btn primary" data-a="back">Back</button></div></div>`);
     s.querySelector('[data-a=back]').onclick = () => { audio.sfx('ui-back'); back(); };
   }
@@ -336,6 +348,7 @@ export class UI {
       <label class="set chk"><span>Invert rise and dive</span><input type="checkbox" ${st.invert ? 'checked' : ''} data-k="invert"></label>
       <label class="set chk"><span>Reduce motion</span><input type="checkbox" ${st.reduceMotion ? 'checked' : ''} data-k="reduceMotion"></label>
       <label class="set chk"><span>Minimap in pipes</span><input type="checkbox" ${st.minimap ? 'checked' : ''} data-k="minimap"></label>
+      <label class="set chk"><span>Your school follows you</span><input type="checkbox" ${st.school !== false ? 'checked' : ''} data-k="school"></label>
       <div class="row"><button class="btn danger" data-a="reset">Reset save</button><button class="btn primary" data-a="back">Back</button></div></div>`);
     s.querySelectorAll('input').forEach(inp => inp.oninput = () => {
       const k = inp.dataset.k; st[k] = inp.type === 'checkbox' ? inp.checked : +inp.value;

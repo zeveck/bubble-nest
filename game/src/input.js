@@ -16,13 +16,14 @@ export const input = {
   touchLook: { id: null, x: 0, y: 0 },
   swipe: { id: null, x: 0, y: 0 },
   rise: false, dive: false,
+  press: null, tapAt: null, mode: 'title',
   touchSeen: false,
   enabled: true,
   canvas: null,
   stickEl: null, knobEl: null,
   anyInput: false,
   onFirstInput: null,
-  stickZone: 170,
+  stickZone: 130,
 
   init(canvas) {
     this.canvas = canvas;
@@ -42,17 +43,19 @@ export const input = {
       if (e.pointerType === 'touch') { this.touchSeen = true; this._touchStart(e); return; }
       canvas.setPointerCapture?.(e.pointerId);
       this.pointer.x = e.clientX; this.pointer.y = e.clientY;
-      if (e.button === 0) this.pointer.down = true;
+      if (e.button === 0) { this.pointer.down = true; this.press = { id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY, t0: performance.now(), mode: 'pending', touch: false }; }
       if (e.button === 1 || e.button === 2) { this.pointer.right = true; this.look.active = true; }
     });
     canvas.addEventListener('pointermove', (e) => {
       if (e.pointerType === 'touch') { this._touchMove(e); return; }
       if (this.pointer.right) { this.look.dx += e.clientX - this.pointer.x; this.look.dy += e.clientY - this.pointer.y; this.look.lastAt = performance.now(); }
       this.pointer.x = e.clientX; this.pointer.y = e.clientY;
+      const pr = this.press;
+      if (pr && pr.id === e.pointerId) { pr.x = e.clientX; pr.y = e.clientY; if (pr.mode === 'pending' && Math.hypot(pr.x - pr.x0, pr.y - pr.y0) > 6) pr.mode = 'hold'; }
     });
     const up = (e) => {
       if (e.pointerType === 'touch') { this._touchEnd(e); return; }
-      if (e.button === 0) this.pointer.down = false;
+      if (e.button === 0) { this.pointer.down = false; this._release(e.pointerId); }
       if (e.button === 1 || e.button === 2) { this.pointer.right = false; this.look.active = false; this.look.lastAt = performance.now(); }
     };
     canvas.addEventListener('pointerup', up);
@@ -71,9 +74,7 @@ export const input = {
       this._drawStick();
       return;
     }
-    if (x > innerWidth / 2 && this.touchLook.id === null) {
-      Object.assign(this.touchLook, { id: e.pointerId, x, y });
-    }
+    if (!this.press) this.press = { id: e.pointerId, x0: x, y0: y, x, y, t0: performance.now(), mode: 'pending', touch: true };
     if (this.swipe.id === null) Object.assign(this.swipe, { id: e.pointerId, x, y });
   },
   _touchMove(e) {
@@ -89,9 +90,11 @@ export const input = {
       this._drawStick();
       return;
     }
-    if (e.pointerId === this.touchLook.id) {
-      this.look.dx += x - this.touchLook.x; this.look.dy += y - this.touchLook.y; this.look.lastAt = performance.now();
-      this.touchLook.x = x; this.touchLook.y = y;
+    const pr = this.press;
+    if (pr && pr.id === e.pointerId) {
+      if (pr.mode === 'pending' && Math.hypot(x - pr.x0, y - pr.y0) > 12) { pr.mode = 'look'; this.touchLook.id = pr.id; this.touchLook.x = x; this.touchLook.y = y; }
+      if (pr.mode === 'look') { this.look.dx += x - this.touchLook.x; this.look.dy += y - this.touchLook.y; this.look.lastAt = performance.now(); this.touchLook.x = x; this.touchLook.y = y; }
+      pr.x = x; pr.y = y;
     }
     if (e.pointerId === this.swipe.id) {
       const dx = x - this.swipe.x, dy = y - this.swipe.y;
@@ -104,6 +107,7 @@ export const input = {
   _touchEnd(e) {
     if (e.pointerId === this.stick.id) { Object.assign(this.stick, { active: false, id: null, x: 0, y: 0 }); this.stickDir = null; this._drawStick(); }
     if (e.pointerId === this.touchLook.id) { this.touchLook.id = null; this.look.lastAt = performance.now(); }
+    this._release(e.pointerId);
     if (e.pointerId === this.swipe.id) this.swipe.id = null;
   },
   _drawStick() {
@@ -114,6 +118,18 @@ export const input = {
     this.knobEl.style.transform = `translate(${s.x * 44}px, ${-s.y * 44}px)`;
   },
 
+  _release(id) {
+    const pr = this.press;
+    if (!pr || pr.id !== id) return;
+    if (pr.mode === 'pending' && this.enabled) this.tapAt = { x: pr.x, y: pr.y };
+    this.press = null;
+  },
+  tick() { // promote a still press to a hold after 200 ms
+    const pr = this.press;
+    if (pr && pr.mode === 'pending' && performance.now() - pr.t0 > 200) pr.mode = 'hold';
+  },
+  takeTap() { const t = this.tapAt; this.tapAt = null; return t; },
+  holding() { return this.press && this.press.mode === 'hold' ? this.press : null; },
   held(...codes) { return codes.some(c => this.keys.has(c)); },
   wasPressed(...codes) { return codes.some(c => this.pressed.has(c)); },
   clearPressed() { this.pressed.clear(); },
@@ -129,6 +145,7 @@ export const input = {
     this.look.dx = 0; this.look.dy = 0;
     Object.assign(this.stick, { active: false, id: null, x: 0, y: 0 }); this.stickDir = null;
     this.touchLook.id = null; this.swipe.id = null; this.rise = false; this.dive = false;
+    this.press = null; this.tapAt = null;
     if (this.stickEl) this._drawStick();
   },
 };

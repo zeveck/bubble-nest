@@ -15,7 +15,7 @@ const X0 = -W / 2, X1 = W / 2, Y0 = -H / 2, Y1 = H / 2, Z0 = -D / 2, Z1 = D / 2;
 const SURF = Y1 - 0.15;
 const MOUTH = new THREE.Vector3(4, 3.0, 0);
 const LEAF = new THREE.Vector3(1.5, SURF - 0.05, -0.6);
-const FEED = new THREE.Vector3(5.6, SURF, 1.6);
+const FEED = new THREE.Vector3(-1.8, SURF, 1.6);
 const BUBBLE_OUT = new THREE.Vector3(-5.6, Y0 + 0.2, -2.3);
 const tmp = new THREE.Vector3(), tmp2 = new THREE.Vector3();
 
@@ -87,17 +87,21 @@ export class TankMode {
     this.buildTank();
     this.buildContents();
     this.fx = new FX(scene, 500, 260);
+    this.marker = new THREE.Mesh(new THREE.RingGeometry(0.22, 0.3, 32), new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.85, depthTest: false, side: THREE.DoubleSide }));
+    this.marker.renderOrder = 6; this.marker.visible = false; scene.add(this.marker);
     // player
     const def = FISH_BY_ID[progress.s.fish];
     this.player = new Fish(getBody('male'), def, { shadow: true });
     scene.add(this.player.group);
     this.p = new THREE.Vector3(); this.v = new THREE.Vector3();
     this.yaw = -Math.PI / 2; this.pitch = 0; this.pushT = 0;
-    if (from === 'start') { this.p.set(-3.5, 1.2, 0.8); this.yaw = Math.atan2(FEED.x - 0.5 + 3.5, FEED.z - 0.8); this.pitch = 0.15; }
+    if (from === 'start') { this.p.set(-5.0, 2.2, 0.9); this.yaw = Math.atan2(FEED.x - 0.5 + 3.5, FEED.z - 0.8); this.pitch = 0.15; }
     else if (from === 'pipe' || from === 'title') { this.p.set(MOUTH.x - 0.6, MOUTH.y - 1.4, 0.3); this.yaw = -Math.PI / 2 - 0.3; this.pitch = -0.35; }
     else { this.p.set(0, 0, 1); this.yaw = -Math.PI / 2; }
     if (demo) this.p.set(-2, 0, 0);
-    this.camYawOff = 0; this.camPitch = 0.32; this.camLookT = 0;
+    if (from === 'start') this.yaw = Math.atan2(FEED.x - this.p.x, FEED.z - this.p.z);
+    this.camYaw = this.yaw; this.camPitch = 0.3; this.lookAtV = this.p.clone();
+    this.waypoint = null; this.holdTarget = null; this.happyT = 0; this.celebrateT = 0;
     this.camPos = new THREE.Vector3();
     this.auto = null; this.actionLock = 0; this.enteringTube = false; this.tubeCool = 1.2;
     this.firstVisit = from === 'start';
@@ -124,7 +128,7 @@ export class TankMode {
     const gp = gg.attributes.position;
     for (let i = 0; i < gp.count; i++) { const x = gp.getX(i), z = gp.getZ(i); gp.setY(i, 0.25 * Math.sin(x * 0.6) * Math.cos(z * 0.9) + 0.35 * (z < 0 ? -z / D * 2 : 0)); }
     gg.computeVertexNormals();
-    const floor = new THREE.Mesh(gg, gm); floor.position.y = Y0; floor.receiveShadow = false; sc.add(floor);
+    const floor = new THREE.Mesh(gg, gm); floor.position.y = Y0; floor.receiveShadow = false; sc.add(floor); floor.userData.pick = 'floor'; this.floorMesh = floor;
     // back poster
     const posterN = 1 + (rng(this.id)() * 4 | 0);
     const ptex = texture(`assets/bg/poster-${posterN}.jpg`);
@@ -227,6 +231,15 @@ export class TankMode {
     }
     // bites
     this.bites = makeBites(64, this.world); this.bites.count = 0; sc.add(this.bites);
+    this.bites.userData.pick = 'bite';
+    const hide = new THREE.MeshBasicMaterial({ visible: false });
+    const tubeHit = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 2.2, 12), hide); tubeHit.position.set(MOUTH.x, MOUTH.y + 0.2, 0); tubeHit.userData.pick = 'tube'; sc.add(tubeHit);
+    const walls = new THREE.Mesh(new THREE.BoxGeometry(W, H, D), new THREE.MeshBasicMaterial({ visible: false, side: THREE.BackSide })); walls.userData.pick = 'wall'; sc.add(walls);
+    this.leaf.userData.pick = 'leaf';
+    for (const pr of this.props) pr.userData.pick = 'prop';
+    if (this.bubbleOut) this.bubbleOut.userData.pick = 'bubbleout';
+    this.pickables = [tubeHit, this.bites, this.leaf, ...this.props, walls, this.floorMesh];
+    if (this.bubbleOut) this.pickables.unshift(this.bubbleOut);
     this.biteData = [];
   }
 
@@ -251,6 +264,7 @@ export class TankMode {
       const f = new Fish(getBody('male'), son, { shadow: true });
       f.group.scale.setScalar(0.85);
       this.scene.add(f.group);
+      f.group.userData.pick = 'young'; this.pickables?.unshift(f.group);
       this.young = new Swimmer(f, rng(this.id + 'young'), 0.9);
       this.young.p.set(LEAF.x - 1, 1.5, 0.5);
       this.npcs.push(this.young);
@@ -268,8 +282,8 @@ export class TankMode {
     const r = rng(this.id + 'feed' + progress.s.eaten);
     for (let i = 0; i < n; i++) {
       const a = r() * 6.28, d = 0.3 + r() * 1.6;
-      const c = n > 12 ? FEED.clone().lerp(new THREE.Vector3(0, SURF, 0), r() * 0.8) : FEED;
-      this.biteData.push({ p: new THREE.Vector3(c.x + Math.cos(a) * d - 0.5, SURF - 0.05, THREE.MathUtils.clamp(c.z + Math.sin(a) * d, Z0 + 0.5, Z1 - 0.5)), ph: r() * 6, sink: 0, alive: true });
+      const c = n > 12 ? FEED.clone().lerp(new THREE.Vector3(-4, SURF, -1), r() * 0.8) : FEED;
+      this.biteData.push({ p: new THREE.Vector3(THREE.MathUtils.clamp(c.x + Math.cos(a) * d, X0 + 0.8, 1.8), SURF - 0.05, THREE.MathUtils.clamp(c.z + Math.sin(a) * d, Z0 + 0.5, Z1 - 0.5)), ph: r() * 6, sink: 0, alive: true });
     }
     if (n > 0 && this.from === 'pipe') audio.sfx('feeder');
   }
@@ -281,74 +295,161 @@ export class TankMode {
   }
 
   // ---------- controls ----------
-  controls(dt) {
-    const s = progress.s.settings, sens = s.sens || 1;
-    let fwd = 0, yawRate = 0, rise = 0, pitchT = null;
-    const touch = isTouch();
-    if (input.enabled) {
-      if (input.pointer.down && !touch) {
-        const nx = (input.pointer.x - innerWidth / 2) / (innerWidth / 2), ny = (input.pointer.y - innerHeight / 2) / (innerHeight / 2);
-        const dz = (v) => Math.abs(v) < 0.08 ? 0 : (v - Math.sign(v) * 0.08) / 0.92;
-        yawRate = -dz(nx) * 2.6 * sens; pitchT = -dz(ny) * 1.1 * (s.invert ? -1 : 1); fwd = 1;
+  // Where a screen point lands in the tank: returns { point, kind } (kind: bite, tube, leaf, young, bubbleout, spot).
+  pick(sx, sy) {
+    const ndc = new THREE.Vector2(sx / innerWidth * 2 - 1, -(sy / innerHeight) * 2 + 1);
+    const ray = this.raycaster || (this.raycaster = new THREE.Raycaster());
+    ray.setFromCamera(ndc, this.camera);
+    const hits = ray.intersectObjects(this.pickables.filter(o => o.visible !== false), true);
+    for (const h of hits) {
+      let o = h.object; let k = null;
+      while (o && !k) { k = o.userData.pick; o = o.parent; }
+      if (k === 'bite') {
+        let best = null, bd = 9;
+        for (const b of this.biteData) if (b.alive) { const d = b.p.distanceTo(h.point); if (d < bd) { bd = d; best = b; } }
+        if (best) return { point: best.p.clone(), kind: 'bite' };
       }
-      if (input.held('KeyW', 'ArrowUp')) fwd = 1;
-      if (input.held('KeyS', 'ArrowDown')) fwd = -0.5;
-      if (input.held('KeyA', 'ArrowLeft')) yawRate = 2.2 * sens;
-      if (input.held('KeyD', 'ArrowRight')) yawRate = -2.2 * sens;
-      if (input.held('Space', 'KeyR') || input.rise) rise = 1;
-      if (input.held('ShiftLeft', 'ShiftRight', 'KeyF') || input.dive) rise = -1;
-      if (s.invert && (input.rise || input.dive)) rise = -rise;
-      if (input.stick.active) {
-        const sx = input.stick.x, sy = input.stick.y, mag = Math.min(1, Math.hypot(sx, sy));
-        if (mag > 0.15) {
-          const camYaw = this.yaw + this.camYawOff;
-          const want = camYaw + Math.atan2(-sx, sy);
-          let d = want - this.yaw; d = Math.atan2(Math.sin(d), Math.cos(d));
-          yawRate = THREE.MathUtils.clamp(d * 4, -3, 3);
-          fwd = mag * (Math.abs(d) > 2.4 ? 0.3 : 1);
-          if (touch) pitchT = -(this.camPitch - 0.28) * 1.2;
-        }
+      if (k === 'tube') return { point: MOUTH.clone().add(new THREE.Vector3(0, 0.6, 0)), kind: 'tube' };
+      if (k === 'leaf') return { point: LEAF.clone().add(new THREE.Vector3(0, -0.45, 0)), kind: 'leaf' };
+      if (k === 'young' && this.young) return { point: this.young.p.clone(), kind: 'young' };
+      if (k === 'bubbleout') return { point: BUBBLE_OUT.clone().add(new THREE.Vector3(0.6, 0.9, 0.6)), kind: 'bubbleout' };
+      if (k === 'prop' || k === 'floor' || k === 'wall') {
+        const n = h.face ? h.face.normal.clone().transformDirection(h.object.matrixWorld) : new THREE.Vector3(0, 1, 0);
+        return { point: h.point.clone().addScaledVector(n, 0.75), kind: 'spot' };
       }
     }
-    return { fwd, yawRate, rise, pitchT };
+    // nothing hit: a point along the ray inside the water
+    const pt = ray.ray.at(6, new THREE.Vector3());
+    return { point: pt, kind: 'spot' };
   }
+  clampInside(v) {
+    v.x = THREE.MathUtils.clamp(v.x, X0 + 0.7, X1 - 0.7);
+    v.y = THREE.MathUtils.clamp(v.y, Y0 + 0.7, SURF - 0.15);
+    v.z = THREE.MathUtils.clamp(v.z, Z0 + 0.7, Z1 - 0.7);
+    return v;
+  }
+  setWaypoint(tg, kind) {
+    this.waypoint = { p: this.clampInside(tg.clone()), kind };
+    if (kind === 'tube') this.waypoint.p.copy(MOUTH).add(new THREE.Vector3(0, 0.5, 0));
+    this.marker.position.copy(this.waypoint.p); this.marker.visible = true; this.markerT = 0;
+  }
+
+  controls(dt) {
+    const s = progress.s.settings, sens = s.sens || 1;
+    let want = null, speed = 0, rise = 0;
+    if (!input.enabled) return { want, speed, rise };
+    const camF = tmp.set(Math.sin(this.camYaw), 0, Math.cos(this.camYaw));
+    const camR = new THREE.Vector3(-Math.cos(this.camYaw), 0, Math.sin(this.camYaw));
+    // keyboard: camera-relative
+    let kx = 0, kz = 0;
+    if (input.held('KeyW', 'ArrowUp')) kz = 1;
+    if (input.held('KeyS', 'ArrowDown')) kz = -1;
+    if (input.held('KeyA', 'ArrowLeft')) { this.camYaw += 2.4 * sens * dt; this.keyTurn = 0.3; }
+    if (input.held('KeyD', 'ArrowRight')) { this.camYaw -= 2.4 * sens * dt; this.keyTurn = 0.3; }
+    if (input.held('Space', 'KeyR') || input.rise) rise = 1;
+    if (input.held('ShiftLeft', 'ShiftRight', 'KeyF') || input.dive) rise = -1;
+    if (s.invert && (input.rise || input.dive)) rise = -rise;
+    if (kz > 0) {
+      want = new THREE.Vector3(Math.sin(this.camYaw), -Math.sin(this.camPitch - 0.3) * 0.8, Math.cos(this.camYaw)); speed = 1;
+      this.waypoint = null;
+    } else if (kz < 0) { this.backUp = true; this.waypoint = null; } else if (this.keyTurn > 0) {
+      want = new THREE.Vector3(Math.sin(this.camYaw), 0, Math.cos(this.camYaw)); speed = 0.25;
+    }
+    // stick: camera-relative
+    if (input.stick.active) {
+      const sx = input.stick.x, sy = input.stick.y, mag = Math.min(1, Math.hypot(sx, sy));
+      if (mag > 0.15) {
+        want = camF.clone().multiplyScalar(sy).addScaledVector(camR, sx);
+        want.y = sy > 0 ? -Math.sin(this.camPitch - 0.3) * 0.8 * sy : 0;
+        speed = mag; this.waypoint = null;
+      }
+    }
+    // point and swim: hold = follow the pointer, tap = waypoint
+    const hold = input.holding();
+    if (hold && !want) {
+      const r = this.pick(hold.x, hold.y);
+      this.holdTarget = this.clampInside(r.point);
+      this.holdKind = r.kind;
+      want = this.holdTarget.clone().sub(this.p);
+      speed = want.length() < 0.5 ? 0 : 1;
+      this.waypoint = null;
+      if (r.kind === 'tube' && want.length() < 2.5) this.wantTube = true;
+    } else this.holdTarget = null;
+    const tap = input.takeTap();
+    if (tap && !want) {
+      const r = this.pick(tap.x, tap.y);
+      this.setWaypoint(r.point, r.kind);
+      if (r.kind === 'tube' && this.tubeLocked()) this.ctx.toast('Eat the floating bites first!', 'bite');
+    }
+    if (!want && this.waypoint) {
+      want = this.waypoint.p.clone().sub(this.p);
+      const d = want.length();
+      speed = d < 0.35 ? 0 : Math.min(1, 0.35 + d * 0.5);
+      if (d < 0.35) { this.waypoint = null; this.marker.visible = false; }
+      if (this.waypoint?.kind === 'tube') this.wantTube = true;
+    }
+    if (rise && !want) { want = new THREE.Vector3(Math.sin(this.yaw), 0, Math.cos(this.yaw)).multiplyScalar(0.01); speed = 0; }
+    if (want || rise) this.lastMoveInput = this.t;
+    return { want, speed, rise };
+  }
+
+  tubeLocked() { return this.firstVisit && this.bitesLeft > 0 && this.t < 15; }
 
   update(dt) {
     this.t += dt; this.uTime.value = this.t;
-    const c = this.demo ? this.demoControls(dt) : (this.auto ? this.autoControls(dt) : this.controls(dt));
-    if (!this.demo && this.auto && (input.held('KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight') || input.stick.active || input.pointer.down)) this.auto = null;
-    // movement
-    this.yaw += c.yawRate * dt;
-    if (c.pitchT !== null && c.pitchT !== undefined) this.pitch += (THREE.MathUtils.clamp(c.pitchT, -1.1, 1.1) - this.pitch) * Math.min(1, dt * 3);
-    else if (c.rise) this.pitch += (c.rise * 0.5 - this.pitch) * Math.min(1, dt * 3);
-    else this.pitch += (0 - this.pitch) * Math.min(1, dt * 1.5);
-    this.pushT = c.fwd > 0.5 ? this.pushT + dt : 0;
-    const speed = (this.pushT > 1 ? 5 : 3.5) * c.fwd;
+    this.keyTurn = Math.max(0, (this.keyTurn || 0) - dt);
+    let c;
+    if (this.demo) c = this.demoControls(dt);
+    else if (this.auto) {
+      if (input.held('KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight') || input.stick.active || input.holding() || input.tapAt) { this.auto = null; c = this.controls(dt); }
+      else c = { want: this.auto.clone().sub(this.p), speed: 1, rise: 0 };
+    } else c = this.controls(dt);
+    // steering: turn toward the wanted direction
+    let yawRate = 0;
+    if (c.want && c.want.lengthSq() > 1e-6) {
+      const wy = Math.atan2(c.want.x, c.want.z);
+      let d = wy - this.yaw; d = Math.atan2(Math.sin(d), Math.cos(d));
+      const maxTurn = 4.5 * dt;
+      const step = THREE.MathUtils.clamp(d * Math.min(1, dt * 9), -maxTurn, maxTurn);
+      this.yaw += step; yawRate = step / dt;
+      const wp = Math.atan2(c.want.y, Math.hypot(c.want.x, c.want.z));
+      this.pitch += (THREE.MathUtils.clamp(wp, -1.2, 1.2) - this.pitch) * Math.min(1, dt * 5);
+    } else if (c.rise) this.pitch += (c.rise * 0.5 - this.pitch) * Math.min(1, dt * 4);
+    else this.pitch += (0 - this.pitch) * Math.min(1, dt * 2);
+    const facing = c.want ? Math.max(0, Math.cos(Math.atan2(Math.sin(Math.atan2(c.want.x, c.want.z) - this.yaw), Math.cos(Math.atan2(c.want.x, c.want.z) - this.yaw)))) : 0;
+    this.pushT = c.speed > 0.6 ? this.pushT + dt : 0;
+    const speed = (this.pushT > 1 ? 5.5 : 4) * c.speed * (0.35 + 0.65 * facing);
     const fx = Math.sin(this.yaw) * Math.cos(this.pitch), fz = Math.cos(this.yaw) * Math.cos(this.pitch), fy = Math.sin(this.pitch);
-    tmp.set(fx * speed, fy * speed + c.rise * 2, fz * speed);
-    const k = Math.min(1, dt * (c.fwd || c.rise ? 3 : 2.5));
-    this.v.lerp(tmp, k);
+    tmp.set(fx * speed, fy * speed + c.rise * 2.2, fz * speed);
+    if (this.backUp) { tmp.set(-fx * 1.6, -fy * 1.6 + c.rise * 2.2, -fz * 1.6); this.backUp = false; }
+    // tube: gentle pull when close and heading up
+    const toMouth = tmp2.copy(MOUTH).add(new THREE.Vector3(0, 0.4, 0)).sub(this.p);
+    if (!this.demo && !this.tubeLocked() && toMouth.length() < 2.2 && this.p.y < MOUTH.y && (this.wantTube || this.auto || (this.v.y > 0.3 && this.v.clone().normalize().dot(toMouth.clone().normalize()) > 0.6))) tmp.addScaledVector(toMouth.normalize(), 2.5);
+    this.v.lerp(tmp, Math.min(1, dt * 5));
     this.p.addScaledVector(this.v, dt);
-    // walls: slide
     const m = 0.55;
     if (this.p.x < X0 + m) { this.p.x = X0 + m; this.v.x = 0; } if (this.p.x > X1 - m) { this.p.x = X1 - m; this.v.x = 0; }
     if (this.p.y < Y0 + 0.6) { this.p.y = Y0 + 0.6; this.v.y = 0; } if (this.p.y > SURF - 0.12) { this.p.y = SURF - 0.12; this.v.y = Math.min(0, this.v.y); }
     if (this.p.z < Z0 + m) { this.p.z = Z0 + m; this.v.z = 0; } if (this.p.z > Z1 - m) { this.p.z = Z1 - m; this.v.z = 0; }
     const g = this.player.group;
     g.position.copy(this.p); g.rotation.set(-this.pitch, this.yaw, 0, 'YXZ');
+    if (this.happyT > 0) { this.happyT -= dt; g.rotateZ((1 - Math.max(0, this.happyT)) * Math.PI * 2); }
     const spd = this.v.length();
     this.player.swim = THREE.MathUtils.clamp(0.25 + spd / 5, 0.25, 1);
-    this.player.turn = THREE.MathUtils.clamp(-c.yawRate * 0.4, -1, 1);
+    this.player.turn = THREE.MathUtils.clamp(-yawRate * 0.25, -1, 1);
     this.player.update(dt);
+    // waypoint / hold marker
+    if (this.marker.visible) { this.markerT += dt; const k = 1 + Math.sin(this.markerT * 6) * 0.12; this.marker.scale.setScalar(k); this.marker.lookAt(this.camera.position); }
+    if (this.holdTarget) { this.marker.visible = true; this.marker.position.copy(this.holdTarget); this.marker.lookAt(this.camera.position); }
+    else if (!this.waypoint) this.marker.visible = false;
     // trail bubbles
     this.trailT -= dt;
     if (spd > 1.5 && this.trailT <= 0) {
       this.trailT = 0.12;
       const def = this.player.def, trail = progress.s.fishTrail[def.id] || 'default';
       tmp2.set(-fx, -fy, -fz).multiplyScalar(0.5).add(this.p);
-      this.fx.emit({ x: tmp2.x, y: tmp2.y, z: tmp2.z, vy: 0.4, rise: 0.6, life: 1.6, size: 0.12, color: trail === 'rainbow' ? new THREE.Color().setHSL((this.t * 0.3) % 1, 0.8, 0.7) : def.trail, shape: trailShape(trail), alpha: 0.8, wobble: 0.5 });
+      this.fx.emit({ x: tmp2.x, y: tmp2.y, z: tmp2.z, vy: 0.4, rise: 0.6, life: 1.6, size: 0.12, color: trail === 'rainbow' ? new THREE.Color().setHSL((this.t * 0.3) % 1, 0.8, 0.7) : trail === 'crown' ? 0xffd040 : def.trail, shape: trailShape(trail), alpha: 0.8, wobble: 0.5 });
     }
-    // head
     const head = tmp2.set(fx, fy, fz).multiplyScalar(0.32).add(this.p).clone();
     this.head = head;
     this.updateBites(dt, head);
@@ -359,42 +460,34 @@ export class TankMode {
     }
     this.updateFry(dt);
     this.updateNest(dt);
-    // filter bubbles
     if (Math.random() < dt * 14) this.fx.emit({ x: this.filterSpot.x + (Math.random() - 0.5) * 0.3, y: this.filterSpot.y, z: this.filterSpot.z, vy: 1.2, rise: 0.5, life: 4, size: 0.1 + Math.random() * 0.1, color: 0xffffff, alpha: 0.7, wobble: 0.6, drag: 0.2 });
-    this.mouthRing.material.emissiveIntensity = 0.5 + 0.35 * Math.sin(this.t * 3);
-    if (this.leaf.visible) { const c = progress.canNest(this.id); this.leafMat.emissive.set(c ? 0xffe9a8 : 0x7ac050); this.leafMat.emissiveIntensity = c ? 0.5 + 0.3 * Math.sin(this.t * 4) : 0.45; if (c && Math.random() < dt * 4) this.fx.emit({ x: LEAF.x + (Math.random() - 0.5) * 1.2, y: SURF - 0.4, z: LEAF.z + (Math.random() - 0.5) * 0.8, vy: 0.5, life: 1, size: 0.18, shape: 'spark', color: 0xfff0a0, alpha: 0.9 }); }
-    for (const p of this.props) if (p.userData.sway !== undefined) p.rotation.z = Math.sin(this.t * 0.8 + p.userData.sway) * 0.04;
+    const locked = this.tubeLocked();
+    this.mouthRing.material.emissiveIntensity = locked ? 0.3 : 0.9 + 0.5 * Math.sin(this.t * 3);
+    if (!locked && !this.demo && Math.random() < dt * 6) this.fx.emit({ x: MOUTH.x + (Math.random() - 0.5) * 1.2, y: MOUTH.y - 0.3, z: (Math.random() - 0.5) * 1.2, vy: 0.9, life: 1, size: 0.16, shape: 'spark', color: 0xbff3ea, alpha: 0.9 });
+    if (this.leaf.visible) { const cn = progress.canNest(this.id); this.leafMat.emissive.set(cn ? 0xffe9a8 : 0x7ac050); this.leafMat.emissiveIntensity = cn ? 0.5 + 0.3 * Math.sin(this.t * 4) : 0.45; if (cn && Math.random() < dt * 4) this.fx.emit({ x: LEAF.x + (Math.random() - 0.5) * 1.2, y: SURF - 0.4, z: LEAF.z + (Math.random() - 0.5) * 0.8, vy: 0.5, life: 1, size: 0.18, shape: 'spark', color: 0xfff0a0, alpha: 0.9 }); }
+    for (const pr of this.props) if (pr.userData.sway !== undefined) pr.rotation.z = Math.sin(this.t * 0.8 + pr.userData.sway) * 0.04;
     if (this.bubbleOut) this.bubbleOut.visible = progress.s.roomFound;
     this.fx.update(dt);
-    // tube entry
+    // tube entry: generous capture from below
     if (!this.demo && !this.enteringTube) {
       const dxz = Math.hypot(head.x - MOUTH.x, head.z - MOUTH.z);
       this.tubeCool -= dt;
-      const lockFirst = this.firstVisit && this.bitesLeft > 0 && this.t < 8;
-      if (dxz < 0.8 && head.y > MOUTH.y - 0.5 && this.tubeCool <= 0 && !lockFirst) { this.enteringTube = true; this.ctx.leaveTank(this.id); }
-      // bubble-out
+      if (dxz < 1.0 && head.y > MOUTH.y - 0.6 && this.tubeCool <= 0 && !locked && (this.v.y > 0.15 || this.wantTube || this.auto)) { this.enteringTube = true; this.marker.visible = false; this.ctx.leaveTank(this.id); }
     }
+    this.wantTube = false;
     if (!this.demo && this.id === 'cw-home') {
-      if (this.t > 3 && this.bitesLeft > 0) this.ctx.tip('rise');
+      if (this.t > 0.5) this.ctx.tip('start');
+      if (this.t > 7 && this.bitesLeft > 0) this.ctx.tip('rise');
       if (this.feederBites > 0 && this.bitesLeft === 0) this.ctx.tip('tube');
     }
     this.placeCamera(dt);
-    // action prompt
     this.ctx.setAction(this.demo ? null : this.currentAction());
     if (!this.demo) this.ctx.ui.tankUpdate(this);
   }
 
   demoControls(dt) {
     const tg = new THREE.Vector3(Math.cos(this.t * 0.3) * 3.5, -0.8 + Math.sin(this.t * 0.4) * 0.8, -1.4 + Math.sin(this.t * 0.3) * 0.6);
-    tmp.subVectors(tg, this.p);
-    let d = Math.atan2(tmp.x, tmp.z) - this.yaw; d = Math.atan2(Math.sin(d), Math.cos(d));
-    return { fwd: 0.6, yawRate: THREE.MathUtils.clamp(d * 2, -1.5, 1.5), rise: 0, pitchT: Math.atan2(tmp.y, Math.hypot(tmp.x, tmp.z)) * 0.7 };
-  }
-  autoControls(dt) {
-    const tg = this.auto;
-    tmp.subVectors(tg, this.p);
-    let d = Math.atan2(tmp.x, tmp.z) - this.yaw; d = Math.atan2(Math.sin(d), Math.cos(d));
-    return { fwd: 1, yawRate: THREE.MathUtils.clamp(d * 5, -4, 4), rise: 0, pitchT: Math.atan2(tmp.y, Math.hypot(tmp.x, tmp.z)) };
+    return { want: tg.sub(this.p), speed: 0.55, rise: 0 };
   }
 
   updateBites(dt, head) {
@@ -434,7 +527,18 @@ export class TankMode {
     this.fry.instanceMatrix.needsUpdate = true;
   }
 
+  celebrate(msg) {
+    this.celebrateT = 2.2; this.happyT = 1.0;
+    audio.sfx('grown');
+    const L = LEAF;
+    this.fx.burst(L.x, SURF - 0.15, L.z, 26, { shape: 'spark', color: 0xfff2a8, size: 0.28, speed: 1.6, life: 1.2 });
+    this.fx.burst(L.x, SURF - 0.3, L.z, 22, { shape: 'bubble', color: 0xffffff, size: 0.3, speed: 1.2, life: 1.8, up: -0.6 });
+    this.fx.burst(L.x, SURF - 0.3, L.z, 14, { shape: 'heart', color: 0xff8ab8, size: 0.3, speed: 1.0, life: 1.6, up: -0.4 });
+    this.foam.material.emissiveIntensity = 1.6;
+    this.ctx.toast(msg, 'star');
+  }
   updateNest(dt) {
+    if (this.celebrateT > 0) { this.celebrateT -= dt; this.foam.material.emissiveIntensity = 0.55 + Math.max(0, this.celebrateT) * 0.5; if (Math.random() < dt * 10) this.fx.emit({ x: LEAF.x + (Math.random() - 0.5) * 1.6, y: SURF - 0.2, z: LEAF.z + (Math.random() - 0.5) * 1.0, vy: -0.4 - Math.random(), life: 1.2, size: 0.2, shape: Math.random() < 0.5 ? 'star' : 'spark', color: 0xfff2a8 }); }
     if (this.building) {
       this.building.t += dt;
       const n = Math.min(this.foamMax, Math.floor(this.building.t / 1.6 * this.foamMax));
@@ -448,7 +552,7 @@ export class TankMode {
         this.building.done = true;
         const ok = this.building.ok;
         if (this.node.kind === 'lady') { this.courtT = 2.4; audio.sfx('courtship'); }
-        else { this.building = null; this.afterAction = true; }
+        else { this.building = null; this.afterAction = true; this.celebrate('Bubble nest built! This tank is yours.'); }
       }
     }
     if (this.courtT > 0) {
@@ -456,7 +560,8 @@ export class TankMode {
       if (this.courtT <= 0) {
         this.building = null; this.refreshFry(); this.eggs.visible = true; this.afterAction = true;
         audio.sfx('eggs');
-        this.fx.burst(LEAF.x, SURF - 0.15, LEAF.z, 14, { shape: 'spark', color: 0xfff2cc, size: 0.2, speed: 0.6, life: 0.9 });
+        const fs = progress.fryStatus(this.id);
+        this.celebrate(`Eggs laid! They hatch in ${fs?.left ?? 0} ${fs?.left === 1 ? 'bite' : 'bites'}.`);
         this.ctx.statusChanged();
       }
     }
@@ -465,29 +570,36 @@ export class TankMode {
   placeCamera(dt) {
     const look = input.takeLook();
     const sens = (progress.s.settings.sens || 1) * 0.005;
-    if (look.dx || look.dy) { this.camYawOff -= look.dx * sens; this.camPitch = THREE.MathUtils.clamp(this.camPitch + look.dy * sens, -0.6, 1.1); }
+    if (look.dx || look.dy) { this.camYaw -= look.dx * sens; this.camPitch = THREE.MathUtils.clamp(this.camPitch + look.dy * sens, -0.5, 1.1); }
     const sinceLook = (performance.now() - input.look.lastAt) / 1000;
-    if (!input.look.active && input.touchLook.id === null && sinceLook > 1.5) {
-      this.camYawOff += (0 - this.camYawOff) * Math.min(1, dt * 1.5);
-      if (!isTouch()) this.camPitch += (0.32 - this.camPitch) * Math.min(1, dt * 1.0);
+    const looking = input.look.active || input.touchLook.id !== null || sinceLook < 1.5;
+    if (input.holding() || this.waypoint) this.steerHoldAt = performance.now();
+    const steering = (performance.now() - (this.steerHoldAt || 0)) / 1000 < 1.5;
+    if (!looking && !this.keyTurn && !steering && this.v.length() > 0.6) {
+      let d = this.yaw - this.camYaw; d = Math.atan2(Math.sin(d), Math.cos(d));
+      this.camYaw += d * Math.min(1, dt * 1.8);
     }
-    const cy = this.yaw + this.camYawOff + Math.PI + (this.demo ? 0 : 0.55);
-    let dist = this.demo ? 7 : 2.6;
+    if (!looking) this.camPitch += (0.3 - this.camPitch) * Math.min(1, dt * 1.2);
     let cp = this.camPitch;
-    const nearTop = THREE.MathUtils.smoothstep(this.p.y, SURF - 2.2, SURF - 0.6);
-    cp = cp * (1 - nearTop) + Math.min(cp, -0.3) * nearTop;
-    const off = tmp.set(Math.sin(cy) * Math.cos(cp), Math.sin(cp), Math.cos(cy) * Math.cos(cp)).multiplyScalar(dist);
-    const target = tmp2.copy(this.p).add(off);
-    // keep inside the water box
-    target.x = THREE.MathUtils.clamp(target.x, X0 + 0.3, X1 - 0.3);
-    target.z = THREE.MathUtils.clamp(target.z, Z0 + 0.3, Z1 - 0.3);
-    target.y = THREE.MathUtils.clamp(target.y, Y0 + 0.4, SURF - 0.35);
+    const nearTop = THREE.MathUtils.smoothstep(this.p.y, SURF - 2.4, SURF - 0.4);
+    cp = cp * (1 - nearTop) + Math.min(cp, -0.25) * nearTop;
+    const cy = this.camYaw + Math.PI + (this.demo ? 0 : 0.38);
+    const dist = this.demo ? 7 : 3.4;
+    const target = tmp2.set(Math.sin(cy) * Math.cos(cp), Math.sin(cp), Math.cos(cy) * Math.cos(cp)).multiplyScalar(dist).add(this.p);
+    target.y += this.demo ? 0 : 0.5 * (1 - nearTop);
+    const raw = target.clone();
+    // the side and front panes are clear glass: the camera may look in from just outside them
+    target.x = THREE.MathUtils.clamp(target.x, X0 - 2.2, X1 + 2.2);
+    target.z = THREE.MathUtils.clamp(target.z, Z0 + 0.35, Z1 + 2.5);
+    target.y = THREE.MathUtils.clamp(target.y, Y0 + 0.5, SURF - 0.35);
     if (this.demo) target.set(Math.sin(this.t * 0.1) * 2, 0.6, Z1 - 0.6);
-    this.focus = (this.building || this.courtT > 0) ? LEAF : null;
-    if (this.focus) target.set(LEAF.x - 1.5, SURF - 3.0, Z1 - 0.8);
-    if (dt >= 1) this.camPos.copy(target); else this.camPos.lerp(target, Math.min(1, dt * 6));
+    this.focus = (this.building || this.courtT > 0 || this.celebrateT > 0) && !progress.s.settings.reduceMotion ? LEAF : null;
+    if (this.focus) target.set(LEAF.x - 2.2, SURF - 2.4, Math.min(Z1 - 0.5, LEAF.z + 2.6));
+    if (dt >= 1) this.camPos.copy(target); else this.camPos.lerp(target, Math.min(1, dt * 5));
     this.camera.position.copy(this.camPos);
-    this.camera.lookAt(this.demo ? new THREE.Vector3(0, -0.3, -2) : this.focus ? LEAF : this.p);
+    if (this.demo) this.camera.lookAt(0, -0.3, -2);
+    else if (this.focus) this.camera.lookAt(LEAF.x, LEAF.y - 0.4, LEAF.z);
+    else this.camera.lookAt(this.lookAtV.lerp(new THREE.Vector3(Math.sin(this.yaw), 0, Math.cos(this.yaw)).multiplyScalar(0.7).add(this.p), dt >= 1 ? 1 : Math.min(1, dt * 6)));
   }
 
   currentAction() {
@@ -517,7 +629,7 @@ export class TankMode {
     }
     if (id === 'become') { this.ctx.becomeFish(this.node.son, this.id); return; }
     if (id === 'bubbleout') { this.ctx.toRoom('bubbleout', this.id); return; }
-    if (id === 'pipes') { this.auto = MOUTH.clone().add(new THREE.Vector3(0, 0.3, 0)); return; }
+    if (id === 'pipes') { this.goTube(); return; }
   }
 
   // change player fish in place (after becoming)
@@ -555,6 +667,16 @@ export class TankMode {
     return { name: node.name, line };
   }
 
+  tubeScreen() {
+    if (this.tubeLocked() || this.enteringTube) return null;
+    const v = MOUTH.clone().add(new THREE.Vector3(0, -0.5, 0)).project(this.camera);
+    return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight, on: v.z < 1 && Math.abs(v.x) < 1 && Math.abs(v.y) < 1, nx: v.x, ny: v.y, behind: v.z > 1 };
+  }
+  screenPoints() {
+    const pr = (v) => { const q = v.clone().project(this.camera); return [Math.round((q.x + 1) / 2 * innerWidth), Math.round((1 - q.y) / 2 * innerHeight), q.z < 1 && Math.abs(q.x) < 1 && Math.abs(q.y) < 1]; };
+    return { bites: this.biteData.filter(b => b.alive).map(b => pr(b.p)), tube: pr(MOUTH.clone().add(new THREE.Vector3(0, -0.3, 0))), fish: pr(this.p) };
+  }
+  goTube() { this.auto = MOUTH.clone().add(new THREE.Vector3(0, 0.5, 0)); this.wantTube = true; }
   leafScreen() {
     if (!this.leaf.visible || !progress.canNest(this.id) || this.building) return null;
     const v = LEAF.clone().add(new THREE.Vector3(0, 0.2, 0)).project(this.camera);
@@ -563,5 +685,5 @@ export class TankMode {
   render(renderer) { renderer.render(this.scene, this.camera); }
   resize(w, h) { this.camera.aspect = w / h; this.camera.updateProjectionMatrix(); }
   debug() { return { p: this.p.toArray().map(v => +v.toFixed(2)), yaw: +this.yaw.toFixed(2), bitesLeft: this.bitesLeft, action: this.currentAction()?.id || null, mouth: MOUTH.toArray(), leaf: LEAF.toArray(), young: this.young ? this.young.p.toArray() : null, bubbleOut: BUBBLE_OUT.toArray() }; }
-  teleportTo(v, yaw) { this.p.set(...v); this.v.set(0, 0, 0); if (yaw != null) this.yaw = yaw; }
+  teleportTo(v, yaw) { this.p.set(...v); this.v.set(0, 0, 0); if (yaw != null) { this.yaw = yaw; this.camYaw = yaw; } this.waypoint = null; }
 }

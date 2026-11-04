@@ -9,7 +9,7 @@ const FAST = new URLSearchParams(location.search).has('fast');
 export const WORLD_BY_ID = Object.fromEntries(WORLDS.map(w => [w.id, w]));
 export const TRAILS = ['default', 'hearts', 'stars', 'rings', 'sparkles', 'glow', 'rainbow'];
 const TRAIL_BY_TANK = { 'cw-empty-1': 'hearts', 'cw-empty-2': 'stars', 'cp-empty-1': 'rings', 'cp-empty-2': 'sparkles', 'nn-empty-1': 'glow', 'nn-empty-2': 'rainbow' };
-export const TRAIL_NAMES = { default: 'Bubbles', hearts: 'Hearts', stars: 'Stars', rings: 'Rings', sparkles: 'Sparkles', glow: 'Glow bubbles', rainbow: 'Rainbow' };
+export const TRAIL_NAMES = { default: 'Bubbles', hearts: 'Hearts', stars: 'Stars', rings: 'Rings', sparkles: 'Sparkles', glow: 'Glow bubbles', rainbow: 'Rainbow', crown: 'Crown' };
 
 export const Z = (t) => FAST ? 1 : (t.Z ?? 0);
 export const N = (t) => FAST ? 1 : (t.N ?? 0);
@@ -23,7 +23,7 @@ function fresh() {
     trails: ['default'], fishTrail: {}, worlds: ['cw'],
     docks: ['dock-cw'], roomFound: false, stars: {},
     feederFull: {}, startBites: true, seen: { tips: [], worlds: ['cw'], visited: [] },
-    settings: { music: 0.6, sfx: 0.8, muted: false, sens: 1, invert: false, reduceMotion: false, minimap: true },
+    settings: { music: 0.6, sfx: 0.8, muted: false, sens: 1, invert: false, reduceMotion: false, minimap: true, school: true },
     won: false, hits: 0, playTime: 0,
   };
 }
@@ -39,7 +39,7 @@ function migrate(s) {
   if (typeof s.at === 'string') out.at = s.at;
   for (const k of ['tanks', 'fishHome', 'stars', 'feederFull', 'fishTrail']) if (isObj(s[k])) out[k] = s[k];
   for (const k of ['collected', 'trails', 'worlds', 'docks']) if (Array.isArray(s[k])) out[k] = s[k].filter(x => typeof x === 'string');
-  for (const k of ['roomFound', 'won', 'startBites']) if (typeof s[k] === 'boolean') out[k] = s[k];
+  for (const k of ['roomFound', 'won', 'startBites', 'grandWon']) if (typeof s[k] === 'boolean') out[k] = s[k];
   for (const [id, t] of Object.entries(out.tanks)) if (!isObj(t)) delete out.tanks[id]; else if (t.progress != null) t.progress = num(t.progress, 0);
   for (const [k, v] of Object.entries(out.stars)) if (typeof v !== 'number') delete out.stars[k];
   if (!out.trails.includes('default')) out.trails.unshift('default');
@@ -162,6 +162,7 @@ export const progress = {
     }
     if (!s.fishHome[fishId]) s.fishHome[fishId] = whereTank || 'cw-home';
     if (first) this.emit('newfish', { fish: fishId });
+    if (first && s.collected.length === 15) this.emit('grandopen', {});
     if (first && s.collected.length >= FISH.length && !s.won) { s.won = true; this.emit('victory', {}); }
     this.save(true);
     return first;

@@ -156,7 +156,7 @@ function switchMode(name, params) {
   mode?.exit?.();
   disposeScene(oldScene);
   if (titleMode) { const ts = titleMode.scene; titleMode.exit(); disposeScene(ts); titleMode = null; }
-  modeName = name; mode = modes[name];
+  modeName = name; mode = modes[name]; input.mode = name;
   mode.enter(params);
   mode.resize(innerWidth, innerHeight);
   ui.showHud(true); ui.setMode(name); ui.setAction(null);
@@ -220,9 +220,9 @@ function refreshStatus() {
   if (modeName === 'tank') { const s = mode.status(); ui.setStatus(s.name, s.line); }
 }
 const TIPS = {
-  start: () => isTouch() ? 'Push the stick to swim' : 'Hold the mouse button to swim (or use WASD)',
-  rise: () => isTouch() ? 'Tap the up arrow to rise - eat the bites on top!' : 'Space to rise - eat the bites on top!',
-  tube: () => 'Swim up into the tube',
+  start: () => isTouch() ? 'Tap where you want to swim, or hold and steer. Drag to look around.' : 'Click where you want to swim, or hold the mouse button and steer. WASD works too.',
+  rise: () => isTouch() ? 'Tap the floating bites to swim up and eat them!' : 'Click the floating bites to swim up and eat them!',
+  tube: () => isTouch() ? 'Tap "To the pipes", or swim up into the glowing tube' : 'Click "To the pipes", or swim up into the glowing tube',
   pipe: () => isTouch() ? 'Swipe to turn' : 'Arrow keys or WASD to turn',
   flare: () => 'You flared! Chase them off for bonus bites',
 };
@@ -275,6 +275,7 @@ const STEP = 1 / 60;
 function update(dt) {
   if (titleMode) { titleMode.update(dt); return; }
   if (!mode || paused) return;
+  input.tick();
   mode.update(dt);
   ctx.shakeAmt = Math.max(0, ctx.shakeAmt - dt * 1.2);
   progress.s.playTime += dt;
@@ -326,6 +327,7 @@ progress.on((type, d) => {
   if (type === 'grown') { audio.sfx('grown'); ui.toast(`${FISH_BY_ID[d.fish].name} is grown! Become him from the Map.`, 'fish'); ui.mapBadge = true; ui.refresh(); if (modeName === 'tank' && mode.id === d.id) mode.refreshFry(); }
   if (type === 'dock') { ui.toast(`${WORLD_BY_ID[DOCKS.find(k => k.id === d.id).world].name} dock unlocked`, 'bubble'); }
   if (type === 'frenzy') { audio.sfx('frenzy'); ui.toast(`Feeding Frenzy in ${WORLD_BY_ID[d.world].name}! Fry here grow twice as fast`, 'star'); }
+  if (type === 'grandopen') { audio.sfx('frenzy'); ui.toast('The Grand Maze in Neon Night is open! Beat King Claw.', 'star'); }
   if (type === 'trail') { audio.sfx('star'); ui.toast(`New bubble trail: ${d.trail[0].toUpperCase() + d.trail.slice(1)}! Pick it in the Collection`, 'bubble'); }
   if (type === 'hatch' && modeName === 'tank' && mode.id === d.id) mode.refreshFry();
   refreshStatus();
@@ -356,6 +358,8 @@ window.__game = {
   eat(n, world = 'cw') { progress.eat(n, world); ui.refresh(); return progress.s.eaten; },
   setTank(id, stage) { const t = progress.tank(id); t.claimed = true; if (stage) { t.stage = stage; t.progress = 0; } progress.save(true); return t; },
   unlockDock(id) { progress.unlockDock(id); return progress.s.docks; },
+  _mode: () => mode, _progress: () => progress,
+  tankScreen() { return modeName === 'tank' ? mode.screenPoints() : null; },
   tankPos(v, yaw) { if (modeName === 'tank' || modeName === 'room') mode.teleportTo(v, yaw); return mode.debug(); },
   perf: () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, textures: renderer.info.memory.textures, geometries: renderer.info.memory.geometries, loaded: loadStats }),
   audioState: () => audio.state(),

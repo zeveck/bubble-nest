@@ -4,6 +4,20 @@
 
 1. `--budget 50 We want a 3d game in which you play as a betta fish. The gameplay is arcade simple with some twists. You start able to 3d navigate with mouse or touch around your small tank looking around and nibbling some betta bites floating on the surface. But there's a water filled tube coming down from the top of your tank, and you can swim up into it. When you enter it, you're still 3d but it's basically mechanically be 2d, almost like Pac-Man, except you're swimming. A core mechanic is eating betta bites. The tubes are just a bunch of mazes, again similar to Pac Man difficulty, in which you can munch betta bites and avoid enemies and they branch like pipes or whatever, but they lead to other tanks. Some are empty, some include female bettas. If empty, and you have Z bites, you can claim it by making a bubble nest. If a female betta, you may also make a bubble nest, and then she'll lay a fry and they'll hatch after you gain N bites, and the fry grow up after you eat M more bites, and you can switch to being the fry if you want. Each time you be a new fish, it adds to your betta collection. There's a large network of pipes and passage gets harder and you need more more for the placeholder numbers I gave and they get longer and there are more enemies, but enemies mostly just cause you to lose bites somehow and you can't die. There little to know story, just a pipework of fish, food, and fun, swimming through tubes and getting new tanks and meeting lady fish and getting fry trying to collect all 20 fish or something. It's all bettas. After a while there'll be a pipe with a bubble machine, and if you swim in the betta is put in a 3d bubble they can "float" around a simple room, and it can "dock" at other bubble machines to enter other networks of pipes. There should be three "pipe worlds" with different styles and the like. So it's kinda 3d when you're in a tank, and when you're in the bubble, with 3d controls. But it's kinda simple 2d for the pipes, which is most of the game. Good luck!`
 
+2. `--publish` → "I added it to DNS. Go ahead."
+3. `Do each of the three Ideas for next you proposed and update the README to include the proposal and running of them, with this and them quoted as part of the making of. I like the tank, but I can't control the betta enough to feel like I'm swimming around, and can't easily get into the tube. We def need to improve the playability of this part as it should be key and its how you start.`
+   The three ideas proposed in the first report:
+   - `/gamegen --change make the tank camera frame the fish and the nest leaf better, and add a little celebration when the bubble nest finishes`
+   - `/gamegen --change add a boss-style "Grand Maze" in Neon Night that opens once you have 15 bettas`
+   - `/gamegen --change let collected fish follow you as a little school through the pipes`
+   Notes sent while this change was being made:
+   - `The social card / docs shouldn't mention Pac-Man at all. It's just pipes.`
+   - `(other than where quoting my prompt)`
+   - `don't mention the bubble floating fish room`
+   - `the bubble that floats in 3d around the room to change worlds is a surprise :)`
+   - `It says Pac-Man on https://synapticnoise.com/ right now for it`
+   - `The README can mention it if it outlines game features, but shouldn't spoil it up front`
+
 ## Settings
 
 - 3D: yes (asked for in so many words)
@@ -36,3 +50,12 @@
 ## Notes
 
 - Phase 4 started early on the fish (anchor, 2 bodies done). Fish prototype (code fins, recolour) works in game/fishlab.html; procedural fin rays look good, so the two fintex images are skipped unless polish shows a need.
+
+## Change 1 (tested: mouse-only, touch-only and keyboard tank runs; Grand Maze lock + King Claw win; school in all worlds)
+
+- [x] Tank controls + tube access
+- [x] Tank camera framing + nest celebration
+- [x] Grand Maze (Neon Night, 15 bettas, boss)
+- [x] School follows you in pipes
+- [x] README making-of + screenshots
+- [ ] Play-test, regression (all pairs, e2e)

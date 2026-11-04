@@ -47,7 +47,8 @@ const loader = new GLTFLoader();
 const bodyCache = {};
 
 export async function loadBody(kind, url) {
-  const gltf = await loader.loadAsync(url);
+  let gltf;
+  for (let i = 0; i < 4 && !gltf; i++) { try { gltf = await loader.loadAsync(url); } catch (e) { if (i === 3) throw e; await new Promise(r => setTimeout(r, 600 * (i + 1))); } }
   gltf.scene.updateMatrixWorld(true);
   let mesh = null;
   gltf.scene.traverse(o => { if (o.isMesh && !mesh) mesh = o; });

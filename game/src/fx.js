@@ -100,5 +100,5 @@ export class FX {
 }
 
 export function trailShape(trail) {
-  return { hearts: 'heart', stars: 'star', rings: 'ring', sparkles: 'spark', glow: 'dot', rainbow: 'bubble' }[trail] || 'bubble';
+  return { hearts: 'heart', stars: 'star', rings: 'ring', sparkles: 'spark', glow: 'dot', rainbow: 'bubble', crown: 'star' }[trail] || 'bubble';
 }

@@ -32,6 +32,8 @@ function checkGraph() {
   return errs;
 }
 
+const OPTIONAL = new Set(['nn-gm']);
+
 function sim({ skipEmpties = false, hitMul = 1, frac = RULES.sim.eatFraction, verbose = false } = {}) {
   const W = {};
   for (const w of WORLDS) {
@@ -40,7 +42,8 @@ function sim({ skipEmpties = false, hitMul = 1, frac = RULES.sim.eatFraction, ve
       .sort((a, b) => a.depth - b.depth);
     W[w.id] = {
       hit: w.simHitsPerRun, loss: w.hitLoss, base: w.feederHome, big: w.feederEmpty,
-      mazes: w.mazes.map(mid => ({ id: mid, bites: MAZES[mid].bites, tanks: tanksOf(mid) })),
+      // nn-gm (The Grand Maze) is optional (locked behind 15 bettas, no nests): not in the sim.
+      mazes: w.mazes.filter(mid => !OPTIONAL.has(mid)).map(mid => ({ id: mid, bites: MAZES[mid].bites, tanks: tanksOf(mid) })),
     };
   }
   let wallet = 0, t = 0, empties = 0, feederBites = 0;

@@ -2,34 +2,47 @@
 
 *Swim the pipes. Munch the bites. Build the nests. Collect all 20 bettas.*
 
-You're a betta fish in a little tank with a glass tube hanging into it. Swim up the tube and the world becomes a glowing, Pac-Man-style network of water pipes: munch trails of betta bites, flare your gills to chase off snails and shrimp, and follow the pipes to other tanks. Claim empty tanks with a bubble nest, meet lady bettas, raise their fry, and become each new fish. You can't lose, only collect.
+You're a betta fish in a little tank with a glass tube hanging into it. Swim up the tube and the world becomes a glowing maze of water pipes: munch trails of betta bites, flare your gills to chase off snails and shrimp, and follow the pipes to other tanks. Claim empty tanks with a bubble nest, meet lady bettas, raise their fry, and become each new fish. You can't lose, only collect.
 
 **[▶ Play Bubble Nest](https://bubblenest.synapticnoise.com/)** in your browser. No install, works on desktop and on phones held sideways.
 
 ![Title screen](media/screenshots/title.png)
 
-## The worlds
+## Your tank
+
+![Your home tank](media/screenshots/tank.png)
+
+Every adventure starts in a tank. Click or tap where you want to swim, eat the bites floating on top, and swim up into the glowing tube (or press **To the pipes**). Tanks are where you build bubble nests, meet lady bettas and watch your fry grow.
+
+## The pipe worlds
 
 | | |
 |---|---|
 | ![Clearwater](media/screenshots/clearwater.png) | ![Copperworks](media/screenshots/copperworks.png) |
 | **Clearwater:** clear glass pipes on a sunny windowsill. Learn the ropes: bites, brine shrimp, snails, darting shrimp and wrap-around tunnels. | **Copperworks:** pipes in copper fittings in a warm boiler room. Ride the currents, time the steam valves and dodge the crayfish. |
-| ![Neon Night](media/screenshots/neon.png) | ![The Fish Room](media/screenshots/room.png) |
-| **Neon Night:** an aquarium shop after hours. The pipes are dark, portal rings whisk you across the maze, and jellyfish pulse. | **The Fish Room:** float in a bubble from one world's bubble machine to the next, past the sleeping cat, with every fish you've collected swimming in the Grand Tank. |
-
-![A tank with a bubble nest](media/screenshots/tank.png)
+| ![Neon Night](media/screenshots/neon.png) | ![Your school](media/screenshots/school.png) |
+| **Neon Night:** an aquarium shop after hours. The pipes are dark, portal rings whisk you across the maze, and jellyfish pulse. | **Your school:** the bettas you've collected swim along behind you through the pipes. |
 
 19 named mazes, 28 tanks, 19 lady bettas and 20 bettas to collect, each with its own colours, fins and personality.
 
 ## How to play
 
-- **In a tank:** hold the left mouse button to swim toward the pointer, or use WASD. Space rises, Shift dives, right-drag looks around. Eat the bites on the surface, swim to the floating leaf to build a nest, and swim up into the tube to enter the pipes.
-- **In the pipes:** arrow keys or WASD to turn (or hold the mouse button). You keep swimming until a wall, like Pac-Man. A brine shrimp makes you flare: enemies flee, and bumping one gives bonus bites.
-- **Nests and fry:** exit signs show what's beyond and what a nest costs. Empty tanks become yours (with a feeder and a new bubble trail). Lady bettas lay eggs; they hatch and grow as you eat bites anywhere, and then you can become the grown fry.
+- **In a tank:** click (or tap) where you want to swim, or hold the button and steer. Click a bite to go and eat it; click the tube, or the **To the pipes** sign, to swim up into it. WASD works too: W swims where the camera looks, A and D turn, S backs up, Space rises and Shift dives. Right-drag (or drag a finger) to look around.
+- **In the pipes:** arrow keys or WASD to turn (or hold the mouse button). You keep swimming until you hit a wall. A brine shrimp makes you flare: enemies flee, and bumping one gives bonus bites.
+- **Nests and fry:** exit signs show what's beyond and what a nest costs. Swim to the floating leaf to build a nest. Empty tanks become yours (with a feeder and a new bubble trail). Lady bettas lay eggs; they hatch and grow as you eat bites anywhere, and then you can become the grown fry.
 - **Action:** E or Enter. **Map:** Tab. **Pause:** Esc or P. **Mute:** M.
-- **On a phone** (sideways): the stick on the left swims, drag on the right to look, the arrow buttons rise and dive, and you swipe to turn in the pipes. You can install it from your browser's menu to play full screen, even offline.
+- **On a phone** (sideways): tap to swim, drag to look, the stick on the left and the arrow buttons work too, and you swipe to turn in the pipes. You can install it from your browser's menu to play full screen, even offline.
 
 Enemies only knock bites out of you, so you can never lose. Progress saves automatically in your browser.
+
+## More to discover
+
+*Light spoilers.*
+
+- **Bubble machines:** at the end of a world, a bubble machine carries you somewhere new. Where it takes you is part of the fun.
+- **The Grand Maze:** collect 15 bettas and a sealed gate in Neon Night opens onto the biggest maze of all, home of King Claw. Flare and bump him three times to win the Crown bubble trail.
+
+![The Grand Maze](media/screenshots/grandmaze.png)
 
 ## How it was made
 
@@ -42,8 +55,48 @@ gamegen wrote a brief and a design, had review agents (a player, an engineer and
 
 - [meshgen](https://github.com/zeveck/meshgen): the 3D betta bodies (male and female), snail, shrimp, crayfish, bubble machine, sleeping cat, armchair and the tank decorations. The fins are built in code on top of the bodies, so 20 bettas share two models.
 - [imagegen2](https://github.com/zeveck/imagegen2): the Rust concept art that set the style, the concept pictures the 3D models were made from, and the app icon.
-- [nanogen](https://github.com/zeveck/nanogen): the title art, the three world panoramas, the tank posters, gravel and Fish Room textures.
-- [audiogen](https://github.com/zeveck/audiogen): the music for each world, the tanks and the Fish Room, the victory sting, and 42 sound effects.
+- [nanogen](https://github.com/zeveck/nanogen): the title art, the three world panoramas, the tank posters, gravel and room textures.
+- [audiogen](https://github.com/zeveck/audiogen): the music for each world and the tanks, the victory sting, and 42 sound effects.
+
+Then it was published, after this reply to the confirmation:
+
+> I added it to DNS. Go ahead.
+
+### The first update
+
+At the end of the first run, gamegen suggested three ideas for what to add next:
+
+> `/gamegen --change make the tank camera frame the fish and the nest leaf better, and add a little celebration when the bubble nest finishes`
+
+> `/gamegen --change add a boss-style "Grand Maze" in Neon Night that opens once you have 15 bettas`
+
+> `/gamegen --change let collected fish follow you as a little school through the pipes`
+
+The request was to do all three, and to make the tank much nicer to swim in:
+
+> Do each of the three Ideas for next you proposed and update the README to include the proposal and running of them, with this and them quoted as part of the making of. I like the tank, but I can't control the betta enough to feel like I'm swimming around, and can't easily get into the tube. We def need to improve the playability of this part as it should be key and its how you start.
+
+While it was being built, a few more notes came in:
+
+> The social card / docs shouldn't mention Pac-Man at all. It's just pipes.
+
+> (other than where quoting my prompt)
+
+> don't mention the bubble floating fish room
+
+> the bubble that floats in 3d around the room to change worlds is a surprise :)
+
+> It says Pac-Man on https://synapticnoise.com/ right now for it
+
+> The README can mention it if it outlines game features, but shouldn't spoil it up front
+
+What changed:
+
+- **Swimming in the tanks:** you now click or tap where you want to go (or hold and steer), and keyboard swimming follows the camera. The fish turns faster, the camera looks in through the clear glass instead of hugging the walls, and it holds still while you steer. The tube is easier to enter, and a **To the pipes** sign (with an arrow when it's off screen) can be tapped to swim straight up into it. A review agent checked the new controls before they were built, and it was play-tested with mouse-only, touch-only and keyboard runs. With the mouse alone, a new player eats every starting bite and is in the pipes in about seven seconds of play.
+- **Nest framing and celebration:** the camera frames the leaf while you build and court, and a finished nest bursts with sparkles, hearts and bubbles.
+- **The Grand Maze:** a new 31x17 maze in Neon Night behind a gate that opens at 15 bettas, with King Claw, a big golden crayfish who chases you. Bump him three times while flaring to win the Crown bubble trail. The maze was drawn and checked by the same tool as the others.
+- **Your school:** up to four of your collected bettas follow you through the pipes along the exact path you swam (they can be turned off in Settings).
+- **Wording:** the descriptions now just say pipes, and the bubble machine's destination is kept a surprise.
 
 The design notes, reviews and asset log are in [`design/`](design/), and the maze layouts and their checker in [`tools/`](tools/).
 

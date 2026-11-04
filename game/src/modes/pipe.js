@@ -1,4 +1,4 @@
-// Pipe mode: a Pac-Man style maze of water tubes on a vertical plane.
+// Pipe mode: an arcade maze of water tubes on a vertical plane.
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { MAZES } from '../data/mazes.js';
@@ -23,8 +23,9 @@ const ENEMY = {
   shrimp: { speed: 0.85, model: 'shrimp', size: 0.9, color: 0xff6a4a },
   crayfish: { speed: 0.8, model: 'crayfish', size: 1.05, color: 0x4a8aff },
   jelly: { speed: 0.6, model: null, size: 0.9, color: 0xe8e6ff },
+  king: { speed: 0.75, model: 'crayfish', size: 1.45, color: 0xffc040 },
 };
-export const ENEMY_YAW = { snail: 0, shrimp: 0, crayfish: 0 }; // model facing offsets (radians), tuned from previews
+export const ENEMY_YAW = { snail: 0, shrimp: 0, crayfish: 0, king: 0 }; // model facing offsets (radians), tuned from previews
 
 function mulberry(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 function hashStr(s) { let h = 2166136261; for (const c of s) h = Math.imul(h ^ c.charCodeAt(0), 16777619); return h >>> 0; }
@@ -49,7 +50,7 @@ export class PipeMode {
     const [dx, dy] = DV[d]; const nx = x + dx, ny = y + dy; const m = this.maze;
     if (nx < 0 || nx >= m.w || ny < 0 || ny >= m.h) {
       const ex = this.exitAt[x + ',' + y];
-      if (ex && ex.dir === d) return who === 'player' ? 'exit' : false;
+      if (ex && ex.dir === d) return who === 'player' && !this.exitLocked(ex.n) ? 'exit' : false;
       if (this.ch(x, y) === 'W' && dy === 0) return 'wrap';
       return false;
     }
@@ -58,6 +59,11 @@ export class PipeMode {
     if (c === 'G' && !this.valveOpen(nx, ny)) return false;
     if (who !== 'player' && this.exitAt[nx + ',' + ny]) return false; // enemies stay out of exit mouths
     return 'ok';
+  }
+  exitLocked(n) {
+    const tgt = this.node?.exits?.[n]; if (!tgt) return false;
+    const tn = NODES[tgt.split(':')[0]];
+    return !!(tn?.locked?.bettas && progress.s.collected.length < tn.locked.bettas);
   }
   openDirs(x, y, who) { return ['U', 'D', 'L', 'R'].filter(d => this.canMove(x, y, d, who)); }
   isJunction(x, y) { const n = ['U', 'D', 'L', 'R'].filter(d => { const [dx, dy] = DV[d]; return this.ch(x + dx, y + dy) !== '#'; }); return n.length >= 3 || (n.length === 2 && !(n.includes('U') && n.includes('D')) && !(n.includes('L') && n.includes('R'))); }
@@ -95,6 +101,9 @@ export class PipeMode {
     this.temps = []; this.leaving = false; this.portalLock = null;
     this.streak = 0; this.streakT = 0; this.trailT = 0;
     this.buildEnemies();
+    this.kingHits = 0; this.kingBumpedFlare = false;
+    this.buildGates();
+    this.buildSchool(ex);
     this.camPos = this.wpos(this.P.x, this.P.y).clone();
     this.mouseAxis = null;
     this.placeCamera(1);
@@ -266,7 +275,7 @@ export class PipeMode {
         if (!obj) { obj = new THREE.Group(); const b = new THREE.Mesh(new THREE.SphereGeometry(0.35, 12, 10), new THREE.MeshStandardMaterial({ color: cfg.color })); b.position.y = 0.35; obj.add(b); obj.userData.mesh = b; }
         const inner = obj; obj = new THREE.Group(); inner.position.y -= cfg.size * 0.35; obj.add(inner); obj.userData.inner = inner;
         const mesh = inner.userData.mesh;
-        if (mesh?.material) { mesh.material.emissive = new THREE.Color(this.dark ? cfg.color : 0x000000); mesh.material.emissiveIntensity = this.dark ? 0.35 : 0; }
+        if (mesh?.material) { mesh.material.emissive = new THREE.Color(this.dark || en.type === 'king' ? cfg.color : 0x000000); mesh.material.emissiveIntensity = en.type === 'king' ? 0.5 : this.dark ? 0.35 : 0; if (en.type === 'king') mesh.material.color.set(0xffd080); }
       }
       // glowing eyes so enemies read in the dark
       this.scene.add(obj);
@@ -274,6 +283,61 @@ export class PipeMode {
       if (e.loop) { e.dir = e.loop[0]; }
       else e.dir = this.openDirs(e.x, e.y, 'enemy')[0] || 'L';
       this.enemies.push(e);
+    });
+  }
+
+  buildGates() {
+    this.gates = [];
+    for (const e of this.exitObjs) {
+      if (!this.exitLocked(e.n)) continue;
+      const gate = new THREE.Mesh(new THREE.CircleGeometry(0.62, 32), new THREE.MeshStandardMaterial({ color: 0xffc040, emissive: 0xffa020, emissiveIntensity: 0.8, transparent: true, opacity: 0.75, side: THREE.DoubleSide }));
+      gate.position.copy(e.pos); if (e.dir === 'L' || e.dir === 'R') gate.rotation.y = Math.PI / 2; else gate.rotation.x = Math.PI / 2;
+      this.scene.add(gate); this.gates.push(gate);
+    }
+  }
+  // your school: collected fish that follow your path
+  buildSchool(ex) {
+    this.school = [];
+    this.hist = []; this.histD = 0; this.seg = 0;
+    if (progress.s.settings.school === false) return;
+    const ids = progress.s.collected.filter(id => id !== progress.s.fish).slice(-4).reverse();
+    for (const id of ids) {
+      const f = new Fish(getBody('male'), FISH_BY_ID[id], { finScale: 1.1 });
+      f.group.scale.setScalar(1.15); f.swim = 0.7; f.group.visible = false;
+      this.scene.add(f.group); this.school.push({ f, seg: 0 });
+    }
+    // prefill the path from the entry tube so the school swims in after you
+    const [dx, dy] = DV[ex.dir]; const start = this.wpos(ex.x, ex.y);
+    const yaw = (OPP[ex.dir] === 'L') ? -Math.PI / 2 : Math.PI / 2;
+    const pitch = OPP[ex.dir] === 'U' ? 1.2 : OPP[ex.dir] === 'D' ? -1.2 : 0;
+    for (let i = 8; i >= 0; i--) this.pushHist(new THREE.Vector3(start.x + dx * i * CELL * 0.6, start.y - dy * i * CELL * 0.6, 0), yaw, pitch, true);
+  }
+  pushHist(p, yaw, pitch, force) {
+    const last = this.hist[this.hist.length - 1];
+    if (last && !force && last.p.distanceTo(p) < 0.08 && last.seg === this.seg) return;
+    if (last && last.seg === this.seg) this.histD += last.p.distanceTo(p);
+    else if (last) this.histD += 0.001;
+    this.hist.push({ p: p.clone(), yaw, pitch, seg: this.seg, d: this.histD });
+    if (this.hist.length > 600) this.hist.splice(0, 100);
+  }
+  updateSchool(dt) {
+    if (!this.school?.length) return;
+    this.pushHist(this.fishPos(), this.yawVis, this.pitchVis);
+    const H = this.hist; if (!H.length) return;
+    this.school.forEach((s, i) => {
+      const want = this.histD - (i + 1) * 0.95 * CELL;
+      let j = H.length - 1; while (j > 0 && H[j].d > want) j--;
+      const a = H[j], b = H[Math.min(H.length - 1, j + 1)];
+      if (want < H[0].d) { s.f.group.visible = false; return; }
+      let pos, yaw = a.yaw, pitch = a.pitch;
+      if (a.seg === b.seg && b.d > a.d) { const k = THREE.MathUtils.clamp((want - a.d) / (b.d - a.d), 0, 1); pos = a.p.clone().lerp(b.p, k); }
+      else pos = a.p.clone();
+      if (s.seg !== a.seg && s.f.group.visible) this.fx.burst(pos.x, pos.y, 0.2, 8, { shape: 'ring', color: 0xffffff, size: 0.3, speed: 1, life: 0.4, flat: true });
+      s.seg = a.seg;
+      const gg = s.f.group; gg.visible = true;
+      gg.position.copy(pos).setZ(-0.05 * (i + 1));
+      gg.rotation.set(0, 0, 0); gg.rotateY(yaw); gg.rotateX(-pitch);
+      s.f.swim = this.P.moving ? 0.8 : 0.3; s.f.update(dt);
     });
   }
 
@@ -314,13 +378,13 @@ export class PipeMode {
     const [dx, dy] = DV[e.dir];
     const r = this.canMove(e.x, e.y, e.dir, e.kind);
     if (r === 'exit') { this.leaveBy(this.exitAt[e.x + ',' + e.y].n); return false; }
-    if (r === 'wrap') { e.x = e.x === 0 ? this.maze.w - 1 : 0; if (e.kind === 'player') audio.sfx('wrap', { vol: 0.6 }); return true; }
+    if (r === 'wrap') { e.x = e.x === 0 ? this.maze.w - 1 : 0; if (e.kind === 'player') { audio.sfx('wrap', { vol: 0.6 }); this.seg++; } return true; }
     e.x += dx; e.y += dy;
     if (e.kind === 'player') {
       const p = this.portalAt[e.x + ',' + e.y];
       if (p && this.portalLock !== e.x + ',' + e.y) {
         this.fx.burst(...this.wpos(e.x, e.y).toArray(), 16, { shape: 'spark', color: 0xff4fd8, size: 0.4, speed: 2, life: 0.6, flat: true });
-        e.x = p.x; e.y = p.y; this.portalLock = p.x + ',' + p.y; audio.sfx('portal');
+        e.x = p.x; e.y = p.y; this.portalLock = p.x + ',' + p.y; audio.sfx('portal'); this.seg++;
         this.fx.burst(...this.wpos(e.x, e.y).toArray(), 16, { shape: 'spark', color: 0x3cf0ff, size: 0.4, speed: 2, life: 0.6, flat: true });
       } else if (!p) this.portalLock = null;
     }
@@ -400,7 +464,8 @@ export class PipeMode {
       const s = this.shrimps[i];
       if (s.alive && s.x === P.x && s.y === P.y) {
         s.alive = false; this.shrimpMeshes[i].visible = false;
-        this.flareT = this.wcfg.flareTime ?? 6; this.flareTicked = false;
+        this.flareT = this.id === 'nn-gm' ? 6 : (this.wcfg.flareTime ?? 6); this.flareTicked = false; this.kingBumpedFlare = false;
+        if (this.id === 'nn-gm') s.respawnAt = this.t + 20;
         audio.sfx('gulp'); audio.sfx('flare'); audio.setBright(true);
         progress.eat(1, this.world);
         this.fx.burst(...this.fishPos().toArray(), 18, { shape: 'spark', color: 0xffb070, size: 0.5, speed: 3, life: 0.6, flat: true });
@@ -494,6 +559,7 @@ export class PipeMode {
       const d = e.loop[e.loopI % e.loop.length]; e.loopI++;
       return opts.includes(d) ? d : pool[0];
     }
+    if (e.type === 'king' && e.state === 'roam') { const d = this.bfsDir(e, this.P); if (d) return d; }
     if (e.type === 'crayfish' && e.state === 'roam') {
       const [dx, dy] = DV[P.dir || 'R'];
       let tx = P.x + dx * 3, ty = P.y + dy * 3;
@@ -508,6 +574,7 @@ export class PipeMode {
   updateEnemies(dt) {
     const P = this.P;
     for (const e of this.enemies) {
+      if (e.state === 'gone') continue;
       e.stateT += dt;
       if (e.state === 'rest') { e.restT -= dt; if (e.restT <= 0) e.state = 'roam'; this.placeEnemy(e, dt); continue; }
       if (e.state === 'scared' && this.flareT <= 0) e.state = 'roam';
@@ -528,7 +595,7 @@ export class PipeMode {
         const st = Math.min(adv, 1 - e.f); e.f += st; adv -= st;
         if (e.f >= 1 - 1e-6) {
           e.f = 0; this.stepCell(e);
-          if (e.state === 'home' && e.x === e.home.x && e.y === e.home.y) { e.state = 'rest'; e.restT = 5; break; }
+          if (e.state === 'home' && e.x === e.home.x && e.y === e.home.y) { e.state = 'rest'; e.restT = e.type === 'king' ? 3 : 5; break; }
           if (e.state === 'dart' && this.canMove(e.x, e.y, e.dir, 'enemy')) { /* keep darting straight */ }
           else e.dir = this.chooseDir(e);
           if (!e.dir) break;
@@ -579,10 +646,20 @@ export class PipeMode {
     if (this.leaving) return;
     const me = this.fishPos();
     for (const e of this.enemies) {
-      if (e.state === 'home' || e.state === 'rest') continue;
+      if (e.state === 'home' || e.state === 'rest' || e.state === 'gone') continue;
       const d = this.epos(e).distanceTo(me) / CELL;
       const reach = e.type === 'jelly' && e.pulsing ? 1.0 : 0.5;
       if (d >= reach) continue;
+      if (e.type === 'king' && e.state === 'scared') {
+        if (this.kingBumpedFlare) continue;
+        this.kingBumpedFlare = true; this.kingHits++;
+        e.state = 'home'; audio.sfx('shoo'); audio.sfx('bonk'); this.ctx.shake(0.3);
+        this.fx.burst(me.x, me.y, 0.3, 24, { shape: 'star', color: 0xffd040, size: 0.5, speed: 3.5, life: 0.8, flat: true });
+        if (this.kingHits >= 3) this.beatKing(e);
+        else this.ctx.toast(`King Claw is stunned! ${3 - this.kingHits} more ${3 - this.kingHits === 1 ? 'bump' : 'bumps'} while flaring.`, 'star');
+        continue;
+      }
+      if (e.state === 'gone') continue;
       if (e.state === 'scared') { // bump it home
         e.state = 'home'; audio.sfx('shoo'); progress.eat(5, this.world); this.ctx.biteBump(5);
         this.fx.burst(me.x, me.y, 0.3, 14, { shape: 'star', color: 0xffe080, size: 0.45, speed: 3, life: 0.7, flat: true });
@@ -590,13 +667,27 @@ export class PipeMode {
         continue;
       }
       if (this.safeT > 0 || this.dazeT > 0) continue;
-      this.onHit();
+      this.onHit(e.type === 'king' ? 10 : null);
+      if (e.type === 'king') e.state = 'home';
       break;
     }
   }
-  onHit() {
+  beatKing(e) {
+    e.state = 'gone'; e.obj.visible = false;
+    const p = this.epos(e);
+    this.fx.burst(p.x, p.y, 0.3, 50, { shape: 'star', color: 0xffd040, size: 0.6, speed: 5, life: 1.4, flat: true });
+    this.fx.burst(p.x, p.y, 0.3, 40, { shape: 'dot', color: 0xd09050, size: 0.35, speed: 4, life: 1.0, flat: true });
+    progress.eat(60, this.world); this.ctx.biteBump(60);
+    const first = !progress.s.grandWon;
+    progress.s.grandWon = true;
+    if (!progress.s.trails.includes('crown')) progress.s.trails.push('crown');
+    progress.star(this.id, 2); progress.save(true);
+    audio.sfx('frenzy'); setTimeout(() => audio.sfx('star'), 600);
+    this.ctx.toast(first ? 'You beat King Claw! +60 bites and the Crown bubble trail.' : 'You beat King Claw again! +60 bites.', 'star');
+  }
+  onHit(lossOverride) {
     this.hits++; progress.s.hits++;
-    const loss = this.wcfg.hitLoss ?? 3;
+    const loss = lossOverride ?? this.wcfg.hitLoss ?? 3;
     const lost = progress.lose(loss);
     this.dazeT = 0.4; this.safeT = 1.9;
     audio.sfx('bonk'); if (lost) audio.sfx('scatter', { vol: 0.7 });
@@ -646,7 +737,10 @@ export class PipeMode {
     // refill
     if (this.maze.refill) for (const b of this.biteCells) if (!b.alive && b.respawnAt && this.t > b.respawnAt) { b.alive = true; b.respawnAt = 0; }
     this.temps = this.temps.filter(t => t.alive && t.until > this.t);
+    this.shrimps.forEach((s, i) => { if (!s.alive && s.respawnAt && this.t > s.respawnAt) { s.alive = true; s.respawnAt = 0; this.shrimpMeshes[i].visible = true; } });
+    for (const g of this.gates || []) g.material.emissiveIntensity = 0.6 + 0.3 * Math.sin(this.t * 3);
     this.updateFishVisual(dt);
+    this.updateSchool(dt);
     this.updateBiteMesh();
     for (let i = 0; i < this.shrimpMeshes.length; i++) { const m = this.shrimpMeshes[i]; m.rotation.z = this.t * 2 + i; m.scale.setScalar(1 + 0.15 * Math.sin(this.t * 6 + i)); }
     for (const r of this.portalObjs) { r.rotation.z = this.t; }
@@ -684,7 +778,7 @@ export class PipeMode {
       this.trailT = 0.1;
       const def = this.player.def, trail = progress.s.fishTrail[def.id] || 'default';
       const p = g.position, [dx, dy] = DV[P.dir || 'R'];
-      this.fx.emit({ x: p.x - dx * 0.5, y: p.y + dy * 0.5, z: 0.1, vy: 0.3, rise: 0.4, life: 1.0, size: 0.18, color: trail === 'rainbow' ? new THREE.Color().setHSL((this.t * 0.4) % 1, 0.8, 0.7) : def.trail, shape: trailShape(trail), alpha: 0.75, wobble: 0.6 });
+      this.fx.emit({ x: p.x - dx * 0.5, y: p.y + dy * 0.5, z: 0.1, vy: 0.3, rise: 0.4, life: 1.0, size: 0.18, color: trail === 'rainbow' ? new THREE.Color().setHSL((this.t * 0.4) % 1, 0.8, 0.7) : trail === 'crown' ? 0xffd040 : def.trail, shape: trailShape(trail), alpha: 0.75, wobble: 0.6 });
     }
     if (this.flareT > 0 && Math.random() < dt * 20) this.fx.emit({ x: g.position.x + (Math.random() - 0.5) * 0.8, y: g.position.y + (Math.random() - 0.5) * 0.6, z: 0.3, life: 0.5, size: 0.25, shape: 'spark', color: 0xffc070, alpha: 0.9 });
   }
@@ -748,6 +842,6 @@ export class PipeMode {
     return this.enemies.map(e => { const v = this.epos(e).project(this.camera); return { x: v.x, y: v.y, d: this.distTo(e), state: e.state }; });
   }
   debug() {
-    return { maze: this.id, leftBy: this.leftBy || null, x: this.P.x, y: this.P.y, dir: this.P.dir, f: +this.P.f.toFixed(2), moving: this.P.moving, queued: this.queued, flare: +this.flareT.toFixed(2), hits: this.hits, bitesLeft: this.bitesTotal - this.bitesEatenUnique, bitesTotal: this.bitesTotal, cleared: !!this.cleared, safe: +this.safeT.toFixed(2), enemies: this.enemies.map(e => ({ type: e.type, x: e.x, y: e.y, state: e.state })) };
+    return { boss: this.enemies.find(e => e.type === 'king') ? { hits: this.kingHits, state: this.enemies.find(e => e.type === 'king').state } : null, school: this.school?.length || 0, maze: this.id, leftBy: this.leftBy || null, x: this.P.x, y: this.P.y, dir: this.P.dir, f: +this.P.f.toFixed(2), moving: this.P.moving, queued: this.queued, flare: +this.flareT.toFixed(2), hits: this.hits, bitesLeft: this.bitesTotal - this.bitesEatenUnique, bitesTotal: this.bitesTotal, cleared: !!this.cleared, safe: +this.safeT.toFixed(2), enemies: this.enemies.map(e => ({ type: e.type, x: e.x, y: e.y, state: e.state })) };
   }
 }

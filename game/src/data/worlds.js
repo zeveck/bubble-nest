@@ -28,7 +28,7 @@ export const RULES = {
 export const WORLDS = [
   {id: "cw", name: "Clearwater", setting: "clear glass pipes on a sunny windowsill shelf", home: "cw-home", hitLoss: 3, flareTime: 6, clearBonus: 10, cleanBonus: 10, feederHome: 8, feederEmpty: 20, feederPerEmpty: 2, frenzyMul: 2, simHitsPerRun: 1, dock: "dock-cw", machine: "cw-bm", mazes: ["cw-m1", "cw-m2", "cw-m3", "cw-m4", "cw-m5", "cw-m6"], tanks: ["cw-home", "cw-lady-1", "cw-empty-1", "cw-lady-2", "cw-lady-3", "cw-lady-4", "cw-empty-2", "cw-lady-5", "cw-lady-6"]},
   {id: "cp", name: "Copperworks", setting: "glass pipes in copper fittings, a warm boiler room", home: "cp-home", hitLoss: 5, flareTime: 5, clearBonus: 20, cleanBonus: 20, feederHome: 12, feederEmpty: 30, feederPerEmpty: 2, frenzyMul: 2, simHitsPerRun: 1.5, dock: "dock-cp", machine: "cp-bm", mazes: ["cp-m1", "cp-m2", "cp-m3", "cp-m4", "cp-m5", "cp-m6"], tanks: ["cp-home", "cp-lady-1", "cp-lady-2", "cp-empty-1", "cp-lady-3", "cp-lady-4", "cp-lady-5", "cp-empty-2", "cp-lady-6"]},
-  {id: "nn", name: "Neon Night", setting: "neon-rimmed pipes in a dark aquarium shop after hours", home: "nn-home", hitLoss: 8, flareTime: 4.5, clearBonus: 30, cleanBonus: 30, feederHome: 16, feederEmpty: 40, feederPerEmpty: 2, frenzyMul: 2, simHitsPerRun: 2, dock: "dock-nn", machine: null, mazes: ["nn-m1", "nn-m2", "nn-m3", "nn-m4", "nn-m5", "nn-m6", "nn-m7"], tanks: ["nn-home", "nn-lady-1", "nn-lady-2", "nn-empty-1", "nn-lady-3", "nn-lady-4", "nn-lady-5", "nn-empty-2", "nn-lady-6", "nn-lady-7"]},
+  {id: "nn", name: "Neon Night", setting: "neon-rimmed pipes in a dark aquarium shop after hours", home: "nn-home", hitLoss: 8, flareTime: 4.5, clearBonus: 30, cleanBonus: 30, feederHome: 16, feederEmpty: 40, feederPerEmpty: 2, frenzyMul: 2, simHitsPerRun: 2, dock: "dock-nn", machine: null, mazes: ["nn-m1", "nn-m2", "nn-m3", "nn-m4", "nn-m5", "nn-m6", "nn-m7", "nn-gm"], tanks: ["nn-home", "nn-lady-1", "nn-lady-2", "nn-empty-1", "nn-lady-3", "nn-lady-4", "nn-lady-5", "nn-empty-2", "nn-lady-6", "nn-lady-7"]},
 ];
 
 export const NODES = {
@@ -70,7 +70,8 @@ export const NODES = {
   'nn-m4': {id: "nn-m4", type: "maze", world: "nn", name: "Mirror Hall", exits: {"1":"nn-m3:3", "2":"nn-lady-4", "3":"nn-m5:1"}},
   'nn-m5': {id: "nn-m5", type: "maze", world: "nn", name: "Glow Garden", exits: {"1":"nn-m4:3", "2":"nn-lady-5", "3":"nn-empty-2", "4":"nn-m6:1"}},
   'nn-m6': {id: "nn-m6", type: "maze", world: "nn", name: "Night Market", exits: {"1":"nn-m5:4", "2":"nn-lady-6", "3":"nn-m7:1", "4":"nn-m1:4"}},
-  'nn-m7': {id: "nn-m7", type: "maze", world: "nn", name: "Midnight Snack", exits: {"1":"nn-m6:3", "2":"nn-lady-7"}},
+  'nn-m7': {id: "nn-m7", type: "maze", world: "nn", name: "Midnight Snack", exits: {"1":"nn-m6:3", "2":"nn-lady-7", "3":"nn-gm:1"}},
+  'nn-gm': {id: "nn-gm", type: "maze", world: "nn", name: "The Grand Maze", exits: {"1":"nn-m7:3"}, locked: {bettas: 15}, boss: "king"},
   'nn-home': {id: "nn-home", type: "tank", world: "nn", kind: "home", name: "Neon Night Home", depth: -1, maze: "nn-m1", exit: 1, feeder: 16, bubbleOut: true},
   'nn-lady-1': {id: "nn-lady-1", type: "tank", world: "nn", kind: "lady", name: "Luna's Tank", depth: 0, maze: "nn-m1", exit: 2, Z: 150, N: 80, M: 90, lady: "luna", son: "galaxy", feeder: 16},
   'nn-lady-2': {id: "nn-lady-2", type: "tank", world: "nn", kind: "lady", name: "Nova's Tank", depth: 1, maze: "nn-m2", exit: 2, Z: 160, N: 85, M: 95, lady: "nova", son: "neon", feeder: 16},
