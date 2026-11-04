@@ -35,6 +35,8 @@
 - Requests: `--publish` (DNS added by the person: "I added it to DNS. Go ahead.")
 - Live at https://bubblenest.synapticnoise.com (HTTPS on), repo zeveck/bubble-nest, listed first on synapticnoise.com. Credit confirmed: Rich Conlan.
 
+- Update published (Change 1 + the title-screen corner links): "We do want to keep the title links, but yes, we want all your updates."
+
 ## Phases
 
 - [x] 1 Brief: written (BRIEF.md)
@@ -58,4 +60,4 @@
 - [x] Grand Maze (Neon Night, 15 bettas, boss)
 - [x] School follows you in pipes
 - [x] README making-of + screenshots
-- [ ] Play-test, regression (all pairs, e2e)
+- [x] Play-test, regression (174 pairs, fast e2e to victory, live check)
