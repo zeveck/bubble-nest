@@ -288,8 +288,12 @@ export class UI {
           <button class="btn" data-a="settings">Settings</button>
           <button class="btn" data-a="credits">Credits</button>
         </div>
-      </div>`, 'clear');
+      </div>
+      <a class="corner-link left" href="https://synapticnoise.com/">synapticnoise.com</a>
+      <a class="corner-link right" href="https://github.com/zeveck/bubble-nest" target="_blank" rel="noopener" title="Bubble Nest on GitHub: how it was made" aria-label="Bubble Nest on GitHub: how it was made">GitHub</a>`, 'clear');
     s.querySelectorAll('[data-a]').forEach(b => b.onclick = () => { audio.unlock(); audio.sfx('ui-click'); this.ctx.titleAction(b.dataset.a); });
+    // the corner links open their page only; keep their taps away from the game
+    s.querySelectorAll('.corner-link').forEach(a => ['pointerdown', 'click', 'touchstart'].forEach(t => a.addEventListener(t, e => e.stopPropagation())));
   }
 
   confirm(text, yes, no, yesLabel = 'Yes', noLabel = 'Cancel') {
