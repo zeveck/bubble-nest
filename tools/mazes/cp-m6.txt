@@ -1,0 +1,26 @@
+id: cp-m6
+name: Copper Crown
+exits: 1=cp-m5:4 2=cp-lady-6 3=cp-bm
+enemies: crayfish@S1 shrimp@S2 crayfish@S3 shrimp@S4
+symmetric: yes
+valves: open 3 shut 3
+valve G1: phase 2
+valve G2: phase 1
+valve G3: phase 0
+valve G4: phase 1
+valve G5: phase 2
+signature: the crown: a top corridor of 5 valves, each with a crown point looping over it, opening from the centre outward; the bubble machine waits at the crown's right end
+---
+#########################
+###...#...#...#...#...###
+###.#.#.#.#.#.#.#.#.#.###
+#o..G...G...G...G...G...3
+#.###.###.#####.###.###.#
+1.....###...S...###.....#
+#.###.###.#####.###.###o#
+W...........o...........W
+###.#####.#####.#####.###
+###..S......S......S..###
+#####.###.#####.###.#####
+#####...............#####
+############2############

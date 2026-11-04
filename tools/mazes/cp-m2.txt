@@ -1,0 +1,25 @@
+id: cp-m2
+name: Steam Gates
+exits: 1=cp-m1:3 2=cp-lady-2 3=cp-empty-1 4=cp-m3:1
+enemies: shrimp@S1 snail@S2 shrimp@S3
+symmetric: yes
+valves: open 3 shut 3
+valve G1: phase 0
+valve G2: phase 0.75
+valve G3: phase 1.5
+valve G4: phase 2.25
+signature: the steam-gate highway: a full-width middle corridor cut by 4 valves that open as a left-to-right wave you can surf
+---
+##########2##########
+#o.................o#
+#.###.#########.###.#
+#.........o.........4
+#.###.#########.###.#
+#...G...G...G...G...#
+#.#####.#####.#####.#
+1.....#...S...#.....#
+#####.###.#.###.#####
+#####..S..#..S..#####
+#####.#########.#####
+#####...........#####
+##########3##########

@@ -1,0 +1,22 @@
+id: nn-m4
+name: Mirror Hall
+exits: 1=nn-m3:3 2=nn-lady-4 3=nn-m5:1
+enemies: shrimp@S1 jelly@S2 loop=RRDDDDLLLLUUUURR phase=0 snail@S3 crayfish@S4 shrimp@S5
+symmetric: yes
+signature: two mirrored halls joined by three centre bridges and a wrap row; portal a/b links the halls' top corridors and c/d their side passages, each hop landing you at the mirrored spot
+---
+##################2######
+#o.......S..#..........o#
+#.###.#####.#.#####.###.#
+1.###...a.......b...###.#
+#.#####.###.#.###.#####.#
+#.....#.###.#.###.#.....#
+#.###c#.###.#.###.#d###.#
+W.....#..S..S..S..#.....W
+#.###.#.###.#.###.#.###.#
+#.....#.###.#.###.#.....#
+#.#####.###.#.###.#####.#
+#.###...............###.#
+#.###.#####.#.#####.###.#
+#o..........#..S.......o#
+######3##################

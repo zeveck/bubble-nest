@@ -1,0 +1,25 @@
+id: nn-m7
+name: Midnight Snack
+exits: 1=nn-m6:3 2=nn-lady-7
+enemies: shrimp@S1 crayfish@S2 jelly@S3 loop=RRDDDDLLLLUUUURR phase=0 jelly@S4 loop=LLUUUURRRRDDDDLL phase=1.25 shrimp@S5
+symmetric: yes
+valves: open 3 shut 3
+valve G2: phase 1.5
+refill: 20                # eaten rows refill 20 s later (refilled bites are extra for star 1)
+signature: the midnight buffet: a current ring round the centre behind two valves, a wrap row, one diagonal portal shortcut, two jelly squares and 6 brine shrimp; eaten rows refill 20 s later
+---
+###########################
+#o..........###....S.....o#
+#.###.#####.###.#####.###.#
+1......a....S.............#
+#.###.#######G#######.###.#
+#.....###>>>>>>>>v###..S..#
+#.###.###^#######v###.###.#
+W....o...^#######v...o....W
+#.###.###^#######v###.###.#
+#..S..###^<<<<<<<<###.....#
+#.###.#######G#######.###.#
+#............S....b.......2
+#.###.#####.###.#####.###.#
+#o..........###..........o#
+###########################

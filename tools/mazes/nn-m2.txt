@@ -1,0 +1,22 @@
+id: nn-m2
+name: Ring Road
+exits: 1=nn-m1:3 2=nn-lady-2 3=nn-empty-1 4=nn-m3:1
+enemies: shrimp@S1 crayfish@S2 snail@S3 shrimp@S4
+symmetric: yes
+signature: one long ring road round an inner ring; a portal pair halfway along its top and bottom corridors makes a shortcut across
+---
+###########2###########
+#o....................#
+#.#####.#######.#####.#
+1.#....S...a........#.#
+#.#.###############.#.#
+#.#.###....S....###.#.#
+#.#.###.#######.###.#.#
+#.......#######.......#
+#.#.###.#######.###.#.#
+#.#o###....S....###.#.#
+#.#.###############.#.#
+#.#........b...S....#.4
+#.#####.#######.#####.#
+#....................o#
+###########3###########

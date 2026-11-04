@@ -1,0 +1,35 @@
+id: nn-m6
+name: Night Market
+exits: 1=nn-m5:4 2=nn-lady-6 3=nn-m7:1 4=nn-m1:4
+enemies: shrimp@S1 jelly@S2 loop=RRDDDDLLLLUUUURR phase=0 crayfish@S3 jelly@S4 loop=LLUUUURRRRDDDDLL phase=1.25 shrimp@S5
+symmetric: yes
+valves: open 3 shut 3
+valve G1: phase 0
+valve G2: phase 1.5
+valve G3: phase 0.75
+valve G4: phase 2.25
+valve G5: phase 0
+valve G6: phase 1.5
+valve G7: phase 1.5
+valve G8: phase 0
+valve G9: phase 2.25
+valve G10: phase 0.75
+valve G11: phase 1.5
+valve G12: phase 0
+signature: three aisles (the middle one a wrap row) lined with bite stalls: short loops off the top and bottom aisles behind a valve at each end; two jellyfish patrol the side squares
+---
+###########################
+###.....###..o..###.....###
+###G###G###G###G###G###G###
+1............S............3
+#.###.###.###.###.###.###.#
+#.###..S..#..S..#.....###.#
+#.###.###.#.###.#.###.###.#
+W.........................W
+#.###.###.#.###.#.###.###.#
+#.###.....#.....#..S..###.#
+#.###.###.###.###.###.###.#
+2............S............4
+###G###G###G###G###G###G###
+###..o..###.....###..o..###
+###########################

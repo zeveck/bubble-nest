@@ -1,0 +1,22 @@
+id: nn-m3
+name: Jelly Lanes
+exits: 1=nn-m2:4 2=nn-lady-3 3=nn-m4:1
+enemies: shrimp@S1 jelly@S2 loop=RRRRRRRRRRRRRRRRRRDDDDLLLLLLLLLLLLLLLLLLUUUU phase=0 crayfish@S3 shrimp@S4
+symmetric: yes
+signature: two parallel jelly lanes joined at their ends into the jellyfish's patrol loop; staggered crossing gaps (top, middle, bottom) make you time each crossing
+---
+#########################
+#o....#############....o#
+#.###.#############.###.#
+1...........S...........#
+#######.#########.#######
+###S..................###
+###.#####.#####.#####.###
+###.........S.........###
+###.#####.#####.#####.###
+###...................###
+#######.#########.#######
+#...........S...........3
+#.###.###.#####.###.###.#
+#o....###.......###.....#
+############2############

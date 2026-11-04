@@ -1,0 +1,21 @@
+id: cw-m6
+name: Windowsill Wide
+exits: 1=cw-m5:3 2=cw-lady-6 3=cw-bm
+enemies: snail@S1 shrimp@S2 shrimp@S3
+symmetric: yes
+golden: 1>3              # golden bite trail = stored shortest path from exit 1 to the machine
+signature: the Grid: city blocks of short corridors, a twin-street ladder across the middle with a wrap row, and a golden bite trail from exit 1 to the bubble machine
+---
+###################
+#........S........#
+#.###.#######.###.#
+1.###.#######.###.#
+#.###.#######.###.#
+#........o........#
+###.###.###.###.###
+W.................W
+#.###.###.###.###.#
+#.###S###.###S###.3
+#.###.###.###.###.#
+#o...............o#
+#########2#########

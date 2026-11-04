@@ -1,0 +1,22 @@
+id: nn-m5
+name: Glow Garden
+exits: 1=nn-m4:3 2=nn-lady-5 3=nn-empty-2 4=nn-m6:1
+enemies: shrimp@S1 jelly@S2 loop=RRRRRRDDDDLLLLLLLLUUUURR phase=0 snail@S3 shrimp@S4 crayfish@S5
+symmetric: yes
+signature: four neon flowerbed rings whose currents carry you round (clockwise on the left, anticlockwise on the right), round a central bed where the jellyfish patrols
+---
+#############1#############
+###>>>>v#####.#####v<<<<###
+###^###v#####.#####v###^###
+#o.^###v.........S.v###^.o#
+#.#^###v#.###.###.#v###^#.#
+2.#^<<<<#..S......#>>>>^#.#
+#.###.###.#######.###.###.#
+W....S....#######....S....W
+#.###.###.#######.###.###.#
+#.#>>>>v#.........#v<<<<#.4
+#.#^###v#####.#####v###^#.#
+#o.^###v.....S.....v###^.o#
+###^###v#.#######.#v###^###
+###^<<<<#.........#>>>>^###
+#############3#############

@@ -1,0 +1,22 @@
+id: nn-m1
+name: Lights Out
+exits: 1=nn-home 2=nn-lady-1 3=nn-m2:1 4=nn-m6:4
+enemies: snail@S1 shrimp@S2 shrimp@S3 snail@S4
+symmetric: yes
+signature: long straight runways (top, bottom and a middle wrap row) whose bite trails glow like runway lights in the dark, tied together by short cross-taxiways
+---
+###########4###########
+#o...................o#
+#.###.#####.#####.###.#
+2.###............S###.#
+#.###.#####.#####.###.#
+#.....#####.#####.....#
+#.###.#####.#####.###.#
+W.......S.....S.......W
+#.###.#####.#####.###.#
+#.###.#####.#####.###.#
+#.###.#####.#####.###.#
+#.###S............###.3
+#.###.#####.#####.###.#
+#o...................o#
+###########1###########

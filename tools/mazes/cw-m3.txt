@@ -1,0 +1,18 @@
+id: cw-m3
+name: Wraparound
+exits: 1=cw-m2:4 2=cw-lady-3 3=cw-m4:1
+enemies: snail@S1 shrimp@S2
+symmetric: yes
+signature: long middle-row wrap highway lined with bites, crossed by six short spurs into the upper and lower halls
+---
+############2####
+#o.............o#
+#.#####.#.#####.#
+1.###...S...###.#
+#.###.#####.###.#
+W...............W
+###.###.#.###.###
+#...###.S.###...3
+#.#####.#.#####.#
+#o.............o#
+#################

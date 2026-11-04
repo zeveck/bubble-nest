@@ -1,0 +1,22 @@
+id: cp-m5
+name: Boiler Maze
+exits: 1=cp-m4:3 2=cp-lady-5 3=cp-empty-2 4=cp-m6:1
+enemies: shrimp@S1 snail@S2 crayfish@S3 shrimp@S4
+symmetric: yes
+valves: open 3 shut 3
+valve G2: open 3 shut 3 phase 1.5   # the two boiler doors alternate
+signature: the boiler: a clockwise current ring round a 5x5 central wall block, entered and left only through two valve gaps
+---
+############2############
+#..................S...o#
+#.###.#############.###.#
+1.###.###>>>>>>v###.###.#
+#.###.###^#####v###.###.#
+#.......G^#####vG.......#
+#.###.#.#^#####v#.#.###.#
+#.S.....#^#####v#.....o.#
+#.###.###^#####v###.###.#
+#.###.###^<<S<<<###.###.4
+#.###.#############.###.#
+#o...S..................#
+############3############

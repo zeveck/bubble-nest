@@ -1,0 +1,20 @@
+id: cp-m3
+name: Crayfish Corner
+exits: 1=cp-m2:4 2=cp-lady-3 3=cp-m4:1
+enemies: shrimp@S1 crayfish@S2 shrimp@S3
+symmetric: yes
+signature: the den: a ring corridor round a 3x1 wall block in the middle, entered top and bottom, where the crayfish spawns; brine shrimp in all 4 corners
+---
+#######################
+#o........###........o#
+#.###.###.###.###.###.#
+#..........S..........3
+#####.#####.#####.#####
+#####.###.....###.#####
+#####.###.###.###.#####
+#####.###..S..###.#####
+#####.#####.#####.#####
+1..........S..........#
+#.###.###.###.###.###.#
+#o........###........o#
+###############2#######

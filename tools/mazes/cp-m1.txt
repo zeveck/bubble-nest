@@ -1,0 +1,20 @@
+id: cp-m1
+name: Downstream
+exits: 1=cp-home 2=cp-lady-1 3=cp-m2:1 4=cp-m4:4
+enemies: snail@S1 shrimp@S2 snail@S3
+symmetric: yes
+signature: lazy river: a clockwise current ring round a long 9x1 wall block, joined at four points, that you can ride around
+---
+##########4##########
+###S..............###
+###.#####.#.#####.###
+#o..###.......###...#
+#.#####.#####.#####.#
+2.###>>>>>>>>>>v###.#
+#.###^#########v###.#
+#.###^<<<<<<<<<<###.3
+#.#####.#####.#####.#
+#...###......S###..o#
+###.#####.#.#####.###
+###..............S###
+##########1##########

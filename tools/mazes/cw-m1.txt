@@ -1,0 +1,16 @@
+id: cw-m1
+name: Ripple Run
+exits: 1=cw-home 2=cw-lady-1 3=cw-m2:1
+enemies: snail@S1
+symmetric: yes
+signature: ring corridor round a central wall block; bites curl up from the home exit into the ring to the first brine shrimp; two gaps out (top and bottom)
+---
+###############
+###o...S...o###
+###.###.###.###
+2...#..o..#...#
+#.#.#.###.#.#.#
+#...#.....#...3
+###.###.###.###
+###.........###
+#######1#######

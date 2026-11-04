@@ -1,0 +1,21 @@
+id: cp-m4
+name: Pressure Loop
+exits: 1=cp-m3:3 2=cp-lady-4 3=cp-m5:1 4=cp-m1:4
+enemies: crayfish@S1 snail@S2 shrimp@S3 shrimp@S4
+symmetric: yes
+valves: open 3 shut 3
+signature: a big clockwise current loop round an inner ring, gated by one valve at the top that the top exit feeds straight into
+---
+###########4###########
+#o...................o#
+#.#########.#########.#
+1.###>>>>>>G>>>>>v###.3
+#.###^###########v###.#
+#.###^#....S....#v###.#
+#.###^#.#######.#v###.#
+#....^#....S....#v....#
+#.###^#.#######.#v###.#
+#S###^<<<<<<<<<<<<###S#
+#.#######.###.#######.#
+#..........o..........#
+###########2###########

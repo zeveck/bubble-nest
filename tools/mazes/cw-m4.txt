@@ -1,0 +1,18 @@
+id: cw-m4
+name: Lily Pads
+exits: 1=cw-m3:3 2=cw-lady-4 3=cw-empty-2 4=cw-m5:1
+enemies: shrimp@S1 shrimp@S2
+symmetric: yes
+signature: four square pad rings round 3x1 wall blocks, each resting on one of two wrap rows, a brine shrimp on every pad
+---
+#########2#########
+###..o.......o..###
+###.###.###.###.###
+W.................W
+#.###.#######.###.#
+1.###..S...S..###.4
+#.#######.#######.#
+W.................W
+###.###.###.###.###
+###..o.......o..###
+#########3#########

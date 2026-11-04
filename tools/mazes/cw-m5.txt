@@ -1,0 +1,18 @@
+id: cw-m5
+name: Sun Spiral
+exits: 1=cw-m4:4 2=cw-lady-5 3=cw-m6:1
+enemies: snail@S1 shrimp@S2 shrimp@S3
+symmetric: yes
+signature: two mirrored coils; each corridor winds inward round a wall block to a brine shrimp at its inner turn and leaves by a second gap; a wrap row along the bottom joins them
+---
+######2##############
+###...............###
+###.#####.#.#####.###
+###S....#.#.#...S.###
+###.###.#.#.#.###.###
+###.#o..#.#.#..o#.###
+###.#.###.#.###.#.###
+1.........#.........3
+#.#################.#
+W.........S.........W
+#####################
