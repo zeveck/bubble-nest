@@ -45,6 +45,8 @@
 
 - Update published (Change 1 + the title-screen corner links): "We do want to keep the title links, but yes, we want all your updates."
 
+- Update published (Changes 3 and 4, new social card, gallery text 47): "yes"
+
 ## Phases
 
 - [x] 1 Brief: written (BRIEF.md)
@@ -87,7 +89,7 @@
 - [x] Play-test: bump costs checked in all 3 worlds + King Claw, safety, -N pop at desktop and phone; 174/174 exit pairs; fast e2e to victory
 - [x] README, served on http://localhost:8000
 
-## Change 4 (47 bettas, flare on your terms, flare music; done, not yet published)
+## Change 4 (47 bettas, flare on your terms, flare music; done, published)
 
 - [x] Design + one review round (player, builder, art/sound; all must-fixes taken)
 - [x] Audio: 3 flare tracks, flare-go, found, flare-stored ($1.11)
