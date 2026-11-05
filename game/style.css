@@ -20,6 +20,11 @@ svg { width: 100%; height: 100%; display: block; }
 .bites .ic { width: 28px; height: 28px; color: #a0622d; }
 .bites.bump { animation: bump .25s; } .bites.loss { animation: loss .4s; }
 @keyframes bump { 50% { transform: scale(1.12); } }
+.losspop { position: absolute; transform: translate(-50%, -50%); font-weight: 700; font-size: 20px; color: #fff; background: #e0484a; border: 3px solid #fff3e6; border-radius: 999px; padding: 2px 12px 3px; box-shadow: 0 3px 0 rgba(0,0,0,.25); pointer-events: none; white-space: nowrap; animation: losspop 1.3s ease-out forwards; z-index: 30; }
+@keyframes losspop { 0% { opacity: 0; transform: translate(-50%, -30%) scale(.7); } 15% { opacity: 1; transform: translate(-50%, -50%) scale(1.15); } 30% { transform: translate(-50%, -55%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -140%); } }
+@media (prefers-reduced-motion: reduce) { .losspop { animation: lossfade 1.3s forwards; } }
+.losspop.still { animation: lossfade 1.3s forwards; }
+@keyframes lossfade { 0%, 60% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes loss { 25% { transform: translateX(-5px); background: #ffd6d6; } 75% { transform: translateX(5px); } }
 .hud-tc { position: absolute; left: 50%; top: calc(10px + var(--safe-t)); transform: translateX(-50%); text-align: center; background: rgba(255, 247, 234, 0.9); border: 3px solid var(--teal); border-radius: 16px; padding: 4px 18px 6px; max-width: min(46vw, 460px); box-shadow: 0 3px 0 rgba(0,0,0,.18); pointer-events: none; }
 .hud-tc:empty { display: none; }

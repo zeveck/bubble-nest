@@ -30,7 +30,7 @@ Every adventure starts in a tank. Click or tap where you want to swim, eat the b
 ## How to play
 
 - **In a tank:** click (or tap) where you want to swim, or hold the button and steer. Click a bite to go and eat it; click the tube, or the **To the pipes** sign, to swim up into it. WASD works too: W swims where the camera looks, A and D turn, S backs up, Space rises and Shift dives. Right-drag (or drag a finger) to look around.
-- **In the pipes:** arrow keys or WASD to turn (or hold the mouse button). You keep swimming until you hit a wall. Snails, shrimp and friends block the pipes: bump one and you flinch back and drop some bites. Press Space (or tap **Flare**) to spend a few bites and flare, and while you're flared you can eat them. Brine shrimp give a free flare.
+- **In the pipes:** arrow keys or WASD to turn (or hold the mouse button). You keep swimming until you hit a wall. Snails, shrimp and friends block the pipes: bump one and you flinch back and lose a real chunk of bites (more in later worlds, and a bit more when you're carrying a lot). Press Space (or tap **Flare**) to spend a few bites and flare, and while you're flared you can eat them. Brine shrimp give a free flare.
 - **Nests and fry:** exit signs show what's beyond and what a nest costs. Swim to the floating leaf to build a nest. Empty tanks become yours (with a feeder and a new bubble trail). Lady bettas lay eggs; they hatch and grow as you eat bites anywhere, and then you can become the grown fry.
 - **Action:** E or Enter. **Map:** Tab. **Pause:** Esc or P. **Mute:** M.
 - **On a phone** (sideways): tap to swim, drag to look, the stick on the left and the arrow buttons work too, and you swipe to turn in the pipes. You can install it from your browser's menu to play full screen, even offline.
@@ -102,6 +102,20 @@ What changed:
 - **Easier leaf:** the nest prompt appears anywhere near the leaf in the top half of the tank, and the **Nest spot** sign can be tapped to swim straight under it.
 
 A review agent checked the plan first (and caught a bounce that could ping-pong you back into a chasing enemy, and a floating "Back to the pipes" that would have brought the accidental exits back). Every maze crossing, a run with enemies on, and the full playthrough were tested again.
+
+### The third update
+
+> running into enemies should cause you to lose more food than it does, so it feels like more of s setback. not ridiculous, but i still don't care if i run into enemies.
+
+What changed:
+
+- **Bumps hurt:** a bump now costs 8 / 12 / 18 bites by world (it was 3 / 5 / 8), plus a little more when you're carrying a big pile (5% of what you hold, never more than 1.5 times the base). King Claw takes 25. Half of what you lose still drops behind you for a few seconds, so a quick grab gets some back.
+- **You see it:** a red "−12 bites" pops up over your fish every time.
+- **Flaring pays off:** a bump now costs more than a flare, so flaring when you're cornered is the smart move.
+
+![A bump in Neon Night costs 24 bites](media/screenshots/bump.png)
+
+A review agent checked the numbers first and suggested the cap and moving the costs into the game's data. The economy checker in `tools/` now models the new costs, and every maze crossing and the full playthrough were tested again.
 
 The design notes, reviews and asset log are in [`design/`](design/), and the maze layouts and their checker in [`tools/`](tools/).
 

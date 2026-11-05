@@ -290,7 +290,7 @@ enter it. `?fast=1` sets every Z, N, M to 1 (testing only).
 
 ### Hits, flare and stars
 
-- **Hit:** lose 3 / 5 / 8 bites (World 1 / 2 / 3; never below 0). 0.4 s daze
+- **Hit:** lose 8 / 12 / 18 bites (World 1 / 2 / 3), plus 5% of the bites you're carrying, at most 1.5x that base (12 / 18 / 27); King Claw 25 (up to 38). Never below 0. (Raised in Change 3; was 3 / 5 / 8.) 0.4 s daze
   (fish stops, spins once), then 1.5 s blinking safety. Half the lost bites
   (rounded up) drop 2-3 cells ahead and behind you along the corridor and
   fade after 4 s; the rest are gone. Bonk, small shake.
@@ -956,3 +956,13 @@ Request (exactly as typed): "The enemies aren't threatening enough. They should 
 - `__game.peaceful(true)` turns enemy collisions off for the exit-pair autopilot (it tests the maze graph, not dodging); separate scripted checks cover: a collision flinches and costs bites, safety stops repeat losses, spending bites flares, flared eats an enemy (+5) and it respawns, King Claw by eating.
 - Tank checks: school count in tank, a female present in every tank type, Tank Party plays and ends, prompt is near the fish, arriving and swimming freely for 5 s never re-enters the tube, the nest action appears within 3 u of the leaf.
 - All exit pairs and the fast e2e run pass.
+
+## Change 3: bumps hurt more
+
+Request (exactly as typed): "running into enemies should cause you to lose more food than it does, so it feels like more of s setback. not ridiculous, but i still don't care if i run into enemies."
+
+- A bump (outside the 1.2 s safety) costs the world's base, 8 / 12 / 18 bites (was 3 / 5 / 8), plus 5% of the bites you're carrying, capped at 1.5x the base (12 / 18 / 27). King Claw: base 25 (was 10), cap 38. The numbers live in `RULES.hit` and `hitLoss` in worlds.js.
+- Half the lost bites still drop behind you for 4 s, so a quick grab gets some back. Net loss per bump is about 4-6 / 6-9 / 9-14 bites: roughly a fifth of a typical maze, and more than a flare costs, so flaring when you're cornered is the smart move.
+- A red "-N bites" pops up over your fish, so you feel the loss (a fade only, with Reduce motion).
+- The bite pool has room for 128 dropped bites (was 64), because drops are bigger now.
+- tools/economy.mjs models the new formula; every case passes (max reward gap 2 runs).

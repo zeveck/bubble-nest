@@ -56,7 +56,8 @@ function sim({ skipEmpties = false, hitMul = 1, frac = RULES.sim.eatFraction, ve
   };
   const run = (wk, mi, endsHome = true, tag = '') => {
     const w = W[wk]; const b = w.mazes[mi].bites;
-    let inc = frac * b - hitMul * w.hit * w.loss * RULES.sim.hitRecovered;
+    const perHit = Math.min(Math.round(w.loss * RULES.hit.cap), w.loss + Math.round(Math.max(0, wallet) * RULES.hit.pile));
+    let inc = frac * b - hitMul * w.hit * perHit * RULES.sim.hitRecovered;
     const f = endsHome ? feeder(wk, mi) : 0;
     feederBites += f; inc += f; wallet += inc; t += 1;
     if (tag) events.push([t, tag]);

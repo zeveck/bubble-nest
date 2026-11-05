@@ -76,6 +76,12 @@ export class UI {
     const b = $('#bites'); b.classList.remove('bump', 'loss'); void b.offsetWidth; b.classList.add(n < 0 ? 'loss' : 'bump');
     $('#biteN').textContent = progress.s.bites;
   }
+  lossPop(n, x, y) {
+    const el = h('div', 'losspop', `−${n} bites`);
+    el.style.left = Math.round(Math.max(60, Math.min(innerWidth - 60, x))) + 'px';
+    el.style.top = Math.round(Math.max(90, Math.min(innerHeight - 40, y - 40))) + 'px';
+    this.hud.appendChild(el); setTimeout(() => el.remove(), 1300);
+  }
   setStatus(title, line, extra = '') {
     $('#status').innerHTML = `<div class="st-title">${esc(title)}${extra}</div>${line ? `<div class="st-line">${esc(line)}</div>` : ''}`;
   }

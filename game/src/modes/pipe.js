@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { MAZES } from '../data/mazes.js';
-import { NODES, WORLDS } from '../data/worlds.js';
+import { NODES, WORLDS, RULES } from '../data/worlds.js';
 import { FISH_BY_ID } from '../data/fish.js';
 import { Fish, getBody } from '../fishmodel.js';
 import { modelMesh, texture } from '../assets.js';
@@ -253,7 +253,7 @@ export class PipeMode {
     }
     this.bitesTotal = this.biteCells.length;
     this.bitesEatenUnique = 0;
-    this.biteMesh = makeBites(this.biteCells.length + 64, this.world);
+    this.biteMesh = makeBites(this.biteCells.length + 128, this.world);
     this.biteMesh.renderOrder = 2;
     this.scene.add(this.biteMesh);
     // brine shrimp pickups: curled capsule + halo
@@ -717,7 +717,7 @@ export class PipeMode {
     this.dazeT = 0.35; this.flinchCool = 0.3; this.recoilT = 0.35;
     this.recoilDir = away.setZ(0).normalize();
     audio.sfx('flinch');
-    if (this.safeT <= 0) { this.onHit(e.type === 'king' ? 10 : null); if (e.type === 'king') { e.state = 'home'; } }
+    if (this.safeT <= 0) { this.onHit(e.type === 'king' ? RULES.hit.king : null); if (e.type === 'king') { e.state = 'home'; } }
     else this.ctx.shake(0.08);
   }
   beatKing(e) {
@@ -735,8 +735,11 @@ export class PipeMode {
   }
   onHit(lossOverride) {
     this.hits++; progress.s.hits++;
-    const loss = lossOverride ?? this.wcfg.hitLoss ?? 3;
+    // a bump costs the world's base, plus a little more when you're carrying a big pile (capped)
+    const base = lossOverride ?? this.wcfg.hitLoss ?? 8;
+    const loss = Math.min(Math.round(base * RULES.hit.cap), base + Math.round(progress.s.bites * RULES.hit.pile));
     const lost = progress.lose(loss);
+    if (lost) { const q = this.fishPos().project(this.camera); this.ctx.lossPop?.(lost, (q.x + 1) / 2 * innerWidth, (1 - q.y) / 2 * innerHeight); }
     this.safeT = 1.2;
     audio.sfx('bonk'); if (lost) audio.sfx('scatter', { vol: 0.7 });
     this.ctx.shake(0.25); this.ctx.biteBump(-lost);

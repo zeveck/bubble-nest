@@ -79,6 +79,7 @@ const ctx = {
   setAction(a) { ui.setAction(a); },
   toast(msg, icon) { ui.toast(msg, icon); },
   biteBump(n = 1) { ui.bump(n); },
+  lossPop(n, x, y) { ui.lossPop(n, x, y); },
   shake(a) { if (!progress.s.settings.reduceMotion) ctx.shakeAmt = Math.max(ctx.shakeAmt, a); },
   statusChanged() { refreshStatus(); },
   tip(key) { showTip(key); },

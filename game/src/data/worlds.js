@@ -22,13 +22,14 @@ export const RULES = {
   },
   refillDelay: 20,                     // nn-m7: eaten rows refill 20 s later (extra, not needed for star 1)
   room: { foodBubbles: 24, catCost: 5 },
+  hit: { pile: 0.05, cap: 1.5, king: 25 }, // a bump costs the world's hitLoss + pile x bites carried, at most cap x hitLoss; King Claw's base is king
   sim: { eatFraction: 0.6, hitRecovered: 0.5, maxRewardGap: 2 },
 };
 
 export const WORLDS = [
-  {id: "cw", name: "Clearwater", setting: "clear glass pipes on a sunny windowsill shelf", home: "cw-home", hitLoss: 3, flareTime: 6, clearBonus: 10, cleanBonus: 10, feederHome: 8, feederEmpty: 20, feederPerEmpty: 2, frenzyMul: 2, simHitsPerRun: 1, dock: "dock-cw", machine: "cw-bm", mazes: ["cw-m1", "cw-m2", "cw-m3", "cw-m4", "cw-m5", "cw-m6"], tanks: ["cw-home", "cw-lady-1", "cw-empty-1", "cw-lady-2", "cw-lady-3", "cw-lady-4", "cw-empty-2", "cw-lady-5", "cw-lady-6"]},
-  {id: "cp", name: "Copperworks", setting: "glass pipes in copper fittings, a warm boiler room", home: "cp-home", hitLoss: 5, flareTime: 5, clearBonus: 20, cleanBonus: 20, feederHome: 12, feederEmpty: 30, feederPerEmpty: 2, frenzyMul: 2, simHitsPerRun: 1.5, dock: "dock-cp", machine: "cp-bm", mazes: ["cp-m1", "cp-m2", "cp-m3", "cp-m4", "cp-m5", "cp-m6"], tanks: ["cp-home", "cp-lady-1", "cp-lady-2", "cp-empty-1", "cp-lady-3", "cp-lady-4", "cp-lady-5", "cp-empty-2", "cp-lady-6"]},
-  {id: "nn", name: "Neon Night", setting: "neon-rimmed pipes in a dark aquarium shop after hours", home: "nn-home", hitLoss: 8, flareTime: 4.5, clearBonus: 30, cleanBonus: 30, feederHome: 16, feederEmpty: 40, feederPerEmpty: 2, frenzyMul: 2, simHitsPerRun: 2, dock: "dock-nn", machine: null, mazes: ["nn-m1", "nn-m2", "nn-m3", "nn-m4", "nn-m5", "nn-m6", "nn-m7", "nn-gm"], tanks: ["nn-home", "nn-lady-1", "nn-lady-2", "nn-empty-1", "nn-lady-3", "nn-lady-4", "nn-lady-5", "nn-empty-2", "nn-lady-6", "nn-lady-7"]},
+  {id: "cw", name: "Clearwater", setting: "clear glass pipes on a sunny windowsill shelf", home: "cw-home", hitLoss: 8, flareTime: 6, clearBonus: 10, cleanBonus: 10, feederHome: 8, feederEmpty: 20, feederPerEmpty: 2, frenzyMul: 2, simHitsPerRun: 1, dock: "dock-cw", machine: "cw-bm", mazes: ["cw-m1", "cw-m2", "cw-m3", "cw-m4", "cw-m5", "cw-m6"], tanks: ["cw-home", "cw-lady-1", "cw-empty-1", "cw-lady-2", "cw-lady-3", "cw-lady-4", "cw-empty-2", "cw-lady-5", "cw-lady-6"]},
+  {id: "cp", name: "Copperworks", setting: "glass pipes in copper fittings, a warm boiler room", home: "cp-home", hitLoss: 12, flareTime: 5, clearBonus: 20, cleanBonus: 20, feederHome: 12, feederEmpty: 30, feederPerEmpty: 2, frenzyMul: 2, simHitsPerRun: 1.5, dock: "dock-cp", machine: "cp-bm", mazes: ["cp-m1", "cp-m2", "cp-m3", "cp-m4", "cp-m5", "cp-m6"], tanks: ["cp-home", "cp-lady-1", "cp-lady-2", "cp-empty-1", "cp-lady-3", "cp-lady-4", "cp-lady-5", "cp-empty-2", "cp-lady-6"]},
+  {id: "nn", name: "Neon Night", setting: "neon-rimmed pipes in a dark aquarium shop after hours", home: "nn-home", hitLoss: 18, flareTime: 4.5, clearBonus: 30, cleanBonus: 30, feederHome: 16, feederEmpty: 40, feederPerEmpty: 2, frenzyMul: 2, simHitsPerRun: 2, dock: "dock-nn", machine: null, mazes: ["nn-m1", "nn-m2", "nn-m3", "nn-m4", "nn-m5", "nn-m6", "nn-m7", "nn-gm"], tanks: ["nn-home", "nn-lady-1", "nn-lady-2", "nn-empty-1", "nn-lady-3", "nn-lady-4", "nn-lady-5", "nn-empty-2", "nn-lady-6", "nn-lady-7"]},
 ];
 
 export const NODES = {

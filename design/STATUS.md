@@ -22,6 +22,8 @@
 5. `Let's remove "While it was being built, a few more notes came in: …" these bits` (README notes block removed)
 6. `--change The enemies aren't threatening enough. They should block your passage and cause you to flinch back, so you can't just pass through them. They knock down your food amount. You can spend food to temporarily "flare" and when flared you can eat all enemies. Your line of fish should all fan out in any tank. All tanks should have a female betta. There should be a Tank Party button once you have five or more bettas that has all the bettas in the tank have a brief party. The button in the lower right is sometimes hard notice -- such commands should probably appear nearer the fish? It's too easy after entering a tank to accidentally go right back up the pipe. It's sometimes hard to get to the leaf, not sure if better controls or a bigger region or what.`
 
+7. `--change running into enemies should cause you to lose more food than it does, so it feels like more of s setback. not ridiculous, but i still don't care if i run into enemies.`
+
 ## Settings
 
 - 3D: yes (asked for in so many words)
@@ -76,3 +78,9 @@
 - [x] Prompts near the fish
 - [x] No accidental tube re-entry; easier leaf
 - [x] Sounds (chomp, party), README, regression, local serve
+
+## Change 3 (bumps hurt more; done, not yet published)
+
+- [x] Design + one review round (raised to 8/12/18 + 5% of carried, cap 1.5x; King 25; economy sim models it, passes)
+- [x] Play-test: bump costs checked in all 3 worlds + King Claw, safety, -N pop at desktop and phone; 174/174 exit pairs; fast e2e to victory
+- [x] README, served on http://localhost:8000
