@@ -66,7 +66,7 @@
 - [x] README making-of + screenshots
 - [x] Play-test, regression (174 pairs, fast e2e to victory, live check)
 
-## Change 2 (done, committed locally, not yet published)
+## Change 2 (done, published: "yes")
 
 - [x] Design + one review round
 - [x] Solid enemies: block, flinch back, knock bites
