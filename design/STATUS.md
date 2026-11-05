@@ -66,7 +66,7 @@
 - [x] README making-of + screenshots
 - [x] Play-test, regression (174 pairs, fast e2e to victory, live check)
 
-## Change 2 (in progress)
+## Change 2 (done, committed locally, not yet published)
 
 - [x] Design + one review round
 - [x] Solid enemies: block, flinch back, knock bites
@@ -75,4 +75,4 @@
 - [x] Tank Party (5+ bettas)
 - [x] Prompts near the fish
 - [x] No accidental tube re-entry; easier leaf
-- [ ] Sounds (chomp, party), README, regression, local serve
+- [x] Sounds (chomp, party), README, regression, local serve
