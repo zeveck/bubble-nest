@@ -186,7 +186,7 @@ export class TankMode {
     { const uv = leafGeo.attributes.uv, pos = leafGeo.attributes.position; for (let i = 0; i < uv.count; i++) uv.setXY(i, (pos.getX(i) + 0.9) / 1.8, (pos.getZ(i) + 0.6) / 1.2); }
     this.leafMat = new THREE.MeshStandardMaterial({ map: veins, color: 0x8ab84a, roughness: 0.6, side: THREE.DoubleSide, emissive: 0x7ac050, emissiveIntensity: 0.45 });
     this.leaf = new THREE.Mesh(leafGeo, this.leafMat); this.leaf.position.copy(LEAF); this.leaf.position.y = SURF + 0.05; sc.add(this.leaf);
-    this.leaf.visible = node.kind !== 'home';
+    this.leaf.visible = !!node.son;
     // nest foam
     this.foamMax = 70;
     const foam = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8), new THREE.MeshStandardMaterial({ color: 0xf6fbff, roughness: 0.1, transparent: true, opacity: 0.9, emissive: 0xdff6ff, emissiveIntensity: 0.55 }), this.foamMax);
@@ -198,7 +198,7 @@ export class TankMode {
     foam.count = 0; sc.add(foam); this.foam = foam;
     this.foamShown = 0;
     const t = progress.s.tanks[id];
-    if (t?.claimed) this.setFoam(this.foamMax);
+    if (t?.stage) this.setFoam(this.foamMax);
     // eggs
     const eggs = new THREE.InstancedMesh(new THREE.SphereGeometry(0.035, 8, 6), new THREE.MeshStandardMaterial({ color: 0xffd98a, emissive: 0xffc860, emissiveIntensity: 0.45, roughness: 0.3 }), 24);
     const er = rng(id + 'eggs'); const mtx = new THREE.Matrix4();
@@ -482,7 +482,7 @@ export class TankMode {
     this.updateBites(dt, head);
     for (const n of this.npcs) {
       let over = null;
-      if (n === this.lady && this.courtT > 0) { const a = this.t * 1.6; over = new THREE.Vector3(LEAF.x + Math.cos(a) * 1.0, SURF - 0.8, LEAF.z + Math.sin(a) * 0.8); }
+      if ((n === this.lady || n === this.friend) && this.courtT > 0) { const a = this.t * 1.6; over = new THREE.Vector3(LEAF.x + Math.cos(a) * 1.0, SURF - 0.8, LEAF.z + Math.sin(a) * 0.8); }
       if (this.partyT > 0) { const k = this.npcs.indexOf(n) + 1, a = this.t * 1.3 + k * (Math.PI * 2 / (this.npcs.length + 1)); over = new THREE.Vector3(Math.cos(a) * 2.8, 0.6 + Math.sin(a * 2 + k) * 0.6, 0.6 + Math.sin(a) * 1.5); }
       n.update(dt, over);
     }
@@ -585,8 +585,7 @@ export class TankMode {
       if (this.building.t > 1.8 && !this.building.done) {
         this.building.done = true;
         const ok = this.building.ok;
-        if (this.node.kind === 'lady') { this.courtT = 2.4; audio.sfx('courtship'); }
-        else { this.building = null; this.afterAction = true; this.celebrate('Bubble nest built! This tank is yours.'); }
+        this.courtT = 2.4; audio.sfx('courtship');
       }
     }
     if (this.courtT > 0) {
@@ -595,7 +594,10 @@ export class TankMode {
         this.building = null; this.refreshFry(); this.eggs.visible = true; this.afterAction = true;
         audio.sfx('eggs');
         const fs = progress.fryStatus(this.id);
-        this.celebrate(`Eggs laid! They hatch in ${fs?.left ?? 0} ${fs?.left === 1 ? 'bite' : 'bites'}.`);
+        const she = this.mother()?.name || 'She';
+        const n = fs?.left ?? 0, hatch = `They hatch in ${n} ${n === 1 ? 'bite' : 'bites'}.`;
+        this.celebrate(this.claimedNow ? `This tank is yours, and ${she} laid eggs! ${hatch}` : `Eggs laid! ${hatch}`);
+        this.claimedNow = false;
         this.ctx.statusChanged();
       }
     }
@@ -649,15 +651,23 @@ export class TankMode {
     this.ctx.toast('Tank Party!', 'star');
   }
   endParty() { this.partyCool = 8; this.sun.color.set(this.sunColor); this.hemi.color.set(this.hemiColor); for (const n of this.npcs) n.pick(); }
+  mother() { return this.node.kind === 'lady' ? LADIES[this.node.lady] : FRIENDS[this.id]; }
+  // the nest is on offer once the female hasn't laid yet; in the start tank, only once you can afford it
+  // or have been up the tube (the first minute should lead to the tube)
+  nestOffered() {
+    if (!this.leaf.visible || !progress.canNest(this.id)) return false;
+    if (this.node.start && progress.s.bites < Z(this.node) && !progress.s.seen.visited.some(v => NODES[v]?.type === 'maze')) return false;
+    return true;
+  }
   currentAction() {
     if (this.building || this.courtT > 0 || this.partyT > 0) return null;
     const node = this.node, t = progress.s.tanks[this.id];
     const head = this.head || this.p;
     // nest
-    if (progress.canNest(this.id) && this.nearLeaf(head)) {
+    if (this.nestOffered() && this.nearLeaf(head)) {
       const z = Z(node);
       const afford = progress.s.bites >= z;
-      return { id: 'nest', label: afford ? `Build bubble nest: ${z} ${(z) === 1 ? 'bite' : 'bites'}` : `Need ${z - progress.s.bites} more ${(z - progress.s.bites) === 1 ? 'bite' : 'bites'}`, disabled: !afford };
+      return { id: 'nest', label: afford ? `Nest with ${this.mother()?.name || 'her'}: ${z} ${(z) === 1 ? 'bite' : 'bites'}` : `Need ${z - progress.s.bites} more ${(z - progress.s.bites) === 1 ? 'bite' : 'bites'}`, disabled: !afford };
     }
     if (this.young && head.distanceTo(this.young.p) < 2.5) return { id: 'become', label: `Become ${FISH_BY_ID[node.son].name}` };
     if (this.bubbleOut?.visible && head.distanceTo(BUBBLE_OUT) < 2.2) return { id: 'bubbleout', label: 'Bubble out to the Fish Room' };
@@ -667,7 +677,9 @@ export class TankMode {
 
   doAction(id) {
     if (id === 'nest') {
+      const wasMine = !!progress.s.tanks[this.id]?.claimed;
       if (!progress.nest(this.id)) { audio.sfx('deny'); return; }
+      this.claimedNow = !wasMine && this.node.kind === 'empty';
       audio.sfx('pop');
       this.building = { t: 0 };
       this.foamShown = 0; this.setFoam(0);
@@ -706,15 +718,23 @@ export class TankMode {
   }
 
   status() {
-    const node = this.node, t = progress.s.tanks[this.id];
+    const node = this.node;
     const fs = progress.fryStatus(this.id);
+    const mom = this.mother(), z = Z(node), zb = `${z} ${z === 1 ? 'bite' : 'bites'}`;
+    const home = progress.isHome(this.id);
+    const homeLine = FRIENDS[this.id] ? `Your tank. ${FRIENDS[this.id].name} lives here too.` : 'Your tank';
     let line = '';
-    if (node.kind === 'home') line = FRIENDS[this.id] ? `Your tank. ${FRIENDS[this.id].name} lives here too.` : 'Your tank';
-    else if (!t?.claimed) { const near = this.head && this.nearLeaf(this.head); line = near ? `Build the nest here: ${Z(node)} ${(Z(node)) === 1 ? 'bite' : 'bites'}` : (node.kind === 'lady' ? `${LADIES[node.lady].name} is waiting. Swim to the leaf to nest: ${Z(node)} ${(Z(node)) === 1 ? 'bite' : 'bites'}` : `Swim to the leaf to claim it: ${Z(node)} ${(Z(node)) === 1 ? 'bite' : 'bites'}`); }
-    else if (fs?.stage === 'eggs') line = `Eggs: hatch in ${fs.left} ${fs.left === 1 ? 'bite' : 'bites'}`;
+    if (fs?.stage === 'eggs') line = `Eggs: hatch in ${fs.left} ${fs.left === 1 ? 'bite' : 'bites'}`;
     else if (fs?.stage === 'fry') line = `Fry: grown in ${fs.left} ${fs.left === 1 ? 'bite' : 'bites'}`;
     else if (fs?.stage === 'grown') line = `${FISH_BY_ID[node.son].name} is grown! Swim over to become him.`;
-    else line = FRIENDS[this.id] ? `Your tank. ${FRIENDS[this.id].name} lives here too.` : 'Your tank';
+    else if (this.nestOffered()) {
+      const near = this.head && this.nearLeaf(this.head);
+      if (near) line = `Build the nest here: ${zb}`;
+      else if (node.kind === 'lady') line = `${mom.name} is waiting. Swim to the leaf to nest: ${zb}`;
+      else if (!home) line = `Swim to the leaf to claim it and nest with ${mom?.name || 'her'}: ${zb}`;
+      else line = `${mom?.name || 'She'} would like a nest too: swim to the leaf (${zb})`;
+    }
+    else line = homeLine;
     return { name: node.name, line };
   }
 
@@ -735,7 +755,7 @@ export class TankMode {
   }
   goTube() { this.auto = MOUTH.clone().add(new THREE.Vector3(0, 0.5, 0)); this.wantTube = true; }
   leafScreen() {
-    if (!this.leaf.visible || !progress.canNest(this.id) || this.building) return null;
+    if (!this.nestOffered() || this.building) return null;
     const v = LEAF.clone().add(new THREE.Vector3(0, 0.2, 0)).project(this.camera);
     return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight, on: v.z < 1 && Math.abs(v.x) < 1 && Math.abs(v.y) < 1, nx: v.x, ny: v.y, behind: v.z > 1 };
   }

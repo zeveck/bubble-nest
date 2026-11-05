@@ -3,8 +3,10 @@ import { NODES, WORLDS, DOCKS } from './data/worlds.js';
 import { FISH, FISH_BY_ID } from './data/fish.js';
 
 const KEY = 'bubblenest-save';
-const VERSION = 1;
+const VERSION = 2;
 const FAST = new URLSearchParams(location.search).has('fast');
+export const MAX_FLARES = 2;          // stored free flares (from brine shrimp)
+export const GRAND_BETTAS = NODES['nn-gm'].locked.bettas;
 
 export const WORLD_BY_ID = Object.fromEntries(WORLDS.map(w => [w.id, w]));
 export const TRAILS = ['default', 'hearts', 'stars', 'rings', 'sparkles', 'glow', 'rainbow'];
@@ -24,7 +26,7 @@ function fresh() {
     docks: ['dock-cw'], roomFound: false, stars: {},
     feederFull: {}, startBites: true, seen: { tips: [], worlds: ['cw'], visited: [] },
     settings: { music: 0.6, sfx: 0.8, muted: false, sens: 1, invert: false, reduceMotion: false, minimap: true, school: true },
-    won: false, hits: 0, playTime: 0,
+    won: false, hits: 0, playTime: 0, flares: 0,
   };
 }
 
@@ -34,12 +36,12 @@ function migrate(s) {
   if (!isObj(s)) return fresh();
   const f = fresh();
   const out = f;
-  out.bites = Math.floor(num(s.bites, 0)); out.eaten = Math.floor(num(s.eaten, 0)); out.hits = num(s.hits, 0); out.playTime = num(s.playTime, 0);
+  out.bites = Math.floor(num(s.bites, 0)); out.eaten = Math.floor(num(s.eaten, 0)); out.hits = num(s.hits, 0); out.playTime = num(s.playTime, 0); out.flares = Math.min(MAX_FLARES, Math.floor(num(s.flares, 0)));
   if (typeof s.fish === 'string') out.fish = s.fish;
   if (typeof s.at === 'string') out.at = s.at;
   for (const k of ['tanks', 'fishHome', 'stars', 'feederFull', 'fishTrail']) if (isObj(s[k])) out[k] = s[k];
   for (const k of ['collected', 'trails', 'worlds', 'docks']) if (Array.isArray(s[k])) out[k] = s[k].filter(x => typeof x === 'string');
-  for (const k of ['roomFound', 'won', 'startBites', 'grandWon']) if (typeof s[k] === 'boolean') out[k] = s[k];
+  for (const k of ['roomFound', 'won', 'startBites', 'grandWon', 'grandOpen']) if (typeof s[k] === 'boolean') out[k] = s[k];
   for (const [id, t] of Object.entries(out.tanks)) if (!isObj(t)) delete out.tanks[id]; else if (t.progress != null) t.progress = num(t.progress, 0);
   for (const [k, v] of Object.entries(out.stars)) if (typeof v !== 'number') delete out.stars[k];
   if (!out.trails.includes('default')) out.trails.unshift('default');
@@ -56,6 +58,11 @@ function migrate(s) {
   out.collected = out.collected.filter(id => FISH_BY_ID[id]);
   if (!out.collected.includes('rust')) out.collected.unshift('rust');
   if (!FISH_BY_ID[out.fish]) out.fish = 'rust';
+  // the Grand Maze gate moved from 15 to 35 bettas: a save that already had it open keeps it open
+  if ((s.v ?? 1) < 2 && (out.collected.length >= 15 || out.grandWon)) out.grandOpen = true;
+  if (out.collected.length >= GRAND_BETTAS) out.grandOpen = true;
+  // the collection grew (20 -> 47): a save that finished the old one isn't complete any more
+  if (out.collected.length < FISH.length) { out.won = false; delete out.seen.victory; }
   if (!NODES[out.at] && out.at !== 'room') out.at = 'cw-home';
   for (const k of Object.keys(out.fishHome)) if (!NODES[out.fishHome[k]]) out.fishHome[k] = 'cw-home';
   out.v = VERSION;
@@ -126,18 +133,20 @@ export const progress = {
     if (t.stage === 'fry') return { stage: 'fry', left: Math.max(0, N(node) + M(node) - (t.progress || 0)) };
     return { stage: t.stage, left: 0 };
   },
+  // every tank's female nests once: ladies, and the friends in home and empty tanks
   canNest(id) {
-    const n = NODES[id]; if (!n || n.type !== 'tank' || n.kind === 'home') return false;
-    return !this.s.tanks[id]?.claimed;
+    const n = NODES[id]; if (!n || n.type !== 'tank' || !n.son) return false;
+    return !this.s.tanks[id]?.stage;
   },
   nest(id) {
     const n = NODES[id];
     if (!this.canNest(id) || this.s.bites < Z(n)) return false;
     this.s.bites -= Z(n);
     const t = this.tank(id);
+    const claiming = !t.claimed && n.kind === 'empty';
     t.claimed = true;
-    if (n.kind === 'lady') { t.stage = 'eggs'; t.progress = 0; t.laidAt = this.s.eaten; }
-    else {
+    t.stage = 'eggs'; t.progress = 0; t.laidAt = this.s.eaten;
+    if (claiming) {
       const trail = TRAIL_BY_TANK[id];
       if (trail && !this.s.trails.includes(trail)) { this.s.trails.push(trail); this.emit('trail', { trail }); }
     }
@@ -154,19 +163,38 @@ export const progress = {
       if (whereTank && this.isHome(whereTank)) s.fishHome[old] = whereTank;
       s.fish = fishId;
     }
-    let first = false;
-    if (!s.collected.includes(fishId)) { s.collected.push(fishId); first = true; }
+    const first = this._add(fishId);
     // mark lady tank done
     for (const [id, t] of Object.entries(s.tanks)) {
       if (NODES[id]?.son === fishId && t.stage === 'grown') { t.stage = 'done'; t.becameFish = fishId; s.fishHome[fishId] = id; }
     }
     if (!s.fishHome[fishId]) s.fishHome[fishId] = whereTank || 'cw-home';
-    if (first) this.emit('newfish', { fish: fishId });
-    if (first && s.collected.length === 15) this.emit('grandopen', {});
-    if (first && s.collected.length >= FISH.length && !s.won) { s.won = true; this.emit('victory', {}); }
+    if (first) this._added(fishId);
     this.save(true);
     return first;
   },
+  _add(fishId) { if (this.s.collected.includes(fishId)) return false; this.s.collected.push(fishId); return true; },
+  _added(fishId, extra = {}) {
+    const s = this.s;
+    this.emit('newfish', { fish: fishId, ...extra });
+    if (s.collected.length >= GRAND_BETTAS && !s.grandOpen) { s.grandOpen = true; this.emit('grandopen', {}); }
+    if (s.collected.length >= FISH.length && !s.won) { s.won = true; this.emit('victory', {}); }
+  },
+  // a lost betta found in the pipes: he joins the collection and lives in that world's home tank
+  findStray(mazeId) {
+    const n = NODES[mazeId]; const fid = n?.stray?.fish;
+    if (!fid || this.s.collected.includes(fid)) return false;
+    this._add(fid);
+    this.s.fishHome[fid] = WORLD_BY_ID[n.world].home;
+    this._added(fid, { stray: true, maze: mazeId });
+    this.save(true);
+    return true;
+  },
+  strayFound(mazeId) { const f = NODES[mazeId]?.stray?.fish; return f ? this.s.collected.includes(f) : null; },
+  // free flares from brine shrimp
+  addFlare() { if (this.s.flares >= MAX_FLARES) return false; this.s.flares++; this.save(); return true; },
+  useFlare() { if (this.s.flares <= 0) return false; this.s.flares--; this.save(); return true; },
+  isGrandOpen() { return !!(this.s.grandOpen || this.s.grandWon || this.s.collected.length >= GRAND_BETTAS); },
   readyFry() { return Object.entries(this.s.tanks).filter(([, t]) => t.stage === 'grown').map(([id]) => ({ id, node: NODES[id], fish: NODES[id].son })); },
   reachWorld(w) { if (!this.s.worlds.includes(w)) { this.s.worlds.push(w); this.save(true); return true; } return false; },
   unlockDock(id) { if (!this.s.docks.includes(id)) { this.s.docks.push(id); this.emit('dock', { id }); this.save(true); } },

@@ -206,3 +206,40 @@ svg { width: 100%; height: 100%; display: block; }
 .action.float.disabled { box-shadow: 0 4px 0 #6a777b; }
 #btnParty.dim { opacity: .5; }
 #btnParty { color: #e8a020; }
+
+/* ---- Change 4: flare on your terms ---- */
+.flarebtn { position: absolute; overflow: visible; }
+.flarebtn .fring { position: absolute; inset: -9px; border-radius: 999px; pointer-events: none; opacity: 0; background: conic-gradient(#fff2b0 calc(var(--f, 0) * 360deg), rgba(255,255,255,.15) 0); -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px)); mask: radial-gradient(farthest-side, transparent calc(100% - 7px), #000 calc(100% - 6px)); }
+.flarebtn.on { animation: none; background: radial-gradient(circle at 40% 35%, #fff2b0, #ffb020); color: #6a3a00; pointer-events: none; box-shadow: 0 0 24px 6px rgba(255,210,90,.75), 0 5px 0 #c07a10; }
+.flarebtn.on .fring { opacity: 1; }
+.flarebtn.on .cost { font-size: 16px; font-weight: 700; }
+.flarebtn.ending .fring { animation: ringblink .3s steps(2) infinite; }
+@keyframes ringblink { 50% { opacity: .2; } }
+.flarebtn.free { background: radial-gradient(circle at 40% 35%, #ffd070, #ff7a1a); }
+.flarebtn .fpips { position: absolute; top: -10px; right: 6px; display: flex; gap: 4px; }
+.flarebtn .fpips i { width: 16px; height: 16px; border-radius: 50%; background: radial-gradient(circle at 35% 35%, #fff8d0, #ffc020); border: 2px solid #fff; box-shadow: 0 1px 0 rgba(0,0,0,.3); }
+.flarebtn.on .fpips { display: none; }
+.flarebtn.stored { animation: storedpop 1.1s ease-out; }
+@keyframes storedpop { 0% { transform: scale(1); } 15% { transform: scale(1.22); box-shadow: 0 0 30px 10px rgba(255,220,120,.9); } 40% { transform: scale(.96); } 60% { transform: scale(1.08); } 100% { transform: scale(1); } }
+.flarefx { position: absolute; inset: 0; pointer-events: none; z-index: 1; opacity: 0; box-shadow: inset 0 0 90px 30px rgba(255,200,80,.7), inset 0 0 18px 6px rgba(255,248,210,.9); transition: opacity .25s; }
+.flarefx.in { opacity: 1; animation: flarepulse .42s ease-in-out infinite alternate; }
+.flarefx.in::before { content: ''; position: absolute; inset: 0; background: rgba(255,240,190,.55); animation: flareflash .35s ease-out forwards; }
+.flarefx.out { opacity: 0; transition: opacity .6s; }
+.flarefx.still.in { animation: none; }
+@keyframes flarepulse { from { box-shadow: inset 0 0 70px 20px rgba(255,200,80,.55), inset 0 0 14px 4px rgba(255,248,210,.75); } to { box-shadow: inset 0 0 120px 44px rgba(255,190,60,.8), inset 0 0 22px 8px rgba(255,250,220,1); } }
+@keyframes flareflash { to { opacity: 0; } }
+.flarebanner { position: absolute; left: 50%; top: calc(86px + var(--safe-t)); transform: translate(-50%, 0); z-index: 6; pointer-events: none; font-size: 64px; font-weight: 700; letter-spacing: 3px; color: #fff6c8; -webkit-text-stroke: 3px #c0560a; paint-order: stroke fill; text-shadow: 0 0 24px rgba(255,180,40,.9), 0 5px 0 #8a3a00; }
+.flarebanner.go { animation: bannerpop .9s cubic-bezier(.2,1.6,.4,1) forwards; }
+.flarebanner.still.go { animation: bannerfade .9s forwards; }
+@keyframes bannerpop { 0% { opacity: 0; transform: translate(-50%, 10px) scale(.4) rotate(-6deg); } 25% { opacity: 1; transform: translate(-50%, 0) scale(1.15) rotate(2deg); } 45% { transform: translate(-50%, 0) scale(1) rotate(0); } 80% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, -14px) scale(1.05); } }
+@keyframes bannerfade { 0%, 70% { opacity: 1; } 100% { opacity: 0; } }
+@media (max-height: 500px) { .flarebanner { font-size: 42px; top: calc(84px + var(--safe-t)); } }
+.coll .grid { grid-template-columns: repeat(6, 1fr); }
+.coll .wsec { grid-column: 1 / -1; margin: 10px 2px 0; font-size: 19px; display: flex; gap: 8px; align-items: baseline; }
+.coll .wsec:first-child { margin-top: 0; }
+.coll .wsec small { font-weight: 500; opacity: .7; font-size: 14px; }
+.coll .card .nm { font-size: 15px; } .coll .card .ln { font-size: 12px; }
+.wtabs { display: flex; gap: 6px; margin: 0 0 6px; }
+.wtab { flex: 1; border: 3px solid var(--teal); background: #fff; border-radius: 999px; padding: 4px 8px; font: inherit; font-size: 14px; font-weight: 600; color: inherit; white-space: nowrap; }
+.wtab small { font-weight: 500; opacity: .7; }
+.wtab.on { background: var(--teal); color: #fff; }

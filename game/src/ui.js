@@ -2,7 +2,7 @@
 import { ICON, KIND_ICON } from './icons.js';
 import { NODES, WORLDS, DOCKS } from './data/worlds.js';
 import { MAZES } from './data/mazes.js';
-import { FISH, FISH_BY_ID, LADIES } from './data/fish.js';
+import { FISH, FISH_BY_ID, LADIES, FRIENDS } from './data/fish.js';
 import { progress, Z, TRAIL_NAMES, WORLD_BY_ID } from './progress.js';
 import { audio } from './audio.js';
 import { input, isTouch } from './input.js';
@@ -25,7 +25,9 @@ export class UI {
         <div id="labels" class="labels"></div>
         <div id="pips" class="labels"></div>
         <button class="action" id="action" hidden></button>
-        <button class="flarebtn" id="btnFlare" hidden><span class="fl">Flare</span><span class="cost" id="flareCost"></span></button>
+        <button class="flarebtn" id="btnFlare" hidden><span class="fring"></span><span class="fl">Flare</span><span class="cost" id="flareCost"></span><span class="fpips" id="flarePips"></span></button>
+        <div class="flarefx" id="flarefx" hidden></div>
+        <div class="flarebanner" id="flareBanner" hidden>FLARE!</div>
         <div class="risedive" id="risedive" hidden><button class="round big" id="btnRise" aria-label="Rise">${ICON.up}</button><button class="round big" id="btnDive" aria-label="Dive">${ICON.down}</button></div>
         <div class="tip" id="tip" hidden></div>
       </div>
@@ -96,6 +98,22 @@ export class UI {
     el.classList.toggle('float', this.mode === 'tank' || this.mode === 'room');
     el.dataset.id = a.id;
   }
+  flareFx(on) {
+    const fx = $('#flarefx'), bn = $('#flareBanner'), still = progress.s.settings.reduceMotion;
+    fx.classList.toggle('still', still); bn.classList.toggle('still', still);
+    if (on) {
+      fx.hidden = false; fx.classList.remove('out'); void fx.offsetWidth; fx.classList.add('in');
+      bn.hidden = false; bn.classList.remove('go'); void bn.offsetWidth; bn.classList.add('go');
+      clearTimeout(this.bannerT); this.bannerT = setTimeout(() => { bn.hidden = true; }, 900);
+    } else {
+      fx.classList.remove('in'); fx.classList.add('out');
+      clearTimeout(this.fxT); this.fxT = setTimeout(() => { if (fx.classList.contains('out')) fx.hidden = true; }, 650);
+    }
+  }
+  flareStored(n) {
+    const fb = $('#btnFlare'); fb.classList.remove('stored'); void fb.offsetWidth; fb.classList.add('stored');
+    fb.dataset.k = '';
+  }
   flare(frac) { const r = $('#flareRing'); r.style.opacity = frac > 0 ? 1 : 0; r.style.setProperty('--f', frac); }
 
   // ---------- tips ----------
@@ -138,12 +156,12 @@ export class UI {
     this.pipeInfo(pipe, true);
     this.drawMinimapBase(pipe);
   }
-  pipeExit() { this.labels.innerHTML = ''; this.pips.innerHTML = ''; this.labelEls = {}; }
+  pipeExit() { this.flareFx(false); $('#flarefx').hidden = true; $('#flareBanner').hidden = true; this.labels.innerHTML = ''; this.pips.innerHTML = ''; this.labelEls = {}; }
   exitInfo(target) {
     if (!target) return { icon: 'arrows', text: '' };
     if (target.includes(':')) {
       const mz = target.split(':')[0]; const m = MAZES[mz]; const st = progress.s.stars[mz] || 0; const nd = NODES[mz];
-      if (nd?.locked?.bettas && progress.s.collected.length < nd.locked.bettas) return { icon: 'lock', text: `${m.name}: ${nd.locked.bettas} bettas (you have ${progress.s.collected.length})`, kind: 'maze', afford: false };
+      if (nd?.locked?.bettas && !progress.isGrandOpen()) return { icon: 'lock', text: `${m.name}: ${nd.locked.bettas} bettas (you have ${progress.s.collected.length})`, kind: 'maze', afford: false };
       if (nd?.boss) return { icon: 'star', text: progress.s.grandWon ? `${m.name}: King Claw beaten!` : `${m.name}: beat King Claw!`, stars: st, kind: 'maze' };
       return { icon: 'arrows', text: m.name, stars: st, kind: 'maze' };
     }
@@ -157,6 +175,7 @@ export class UI {
       if (fs?.stage === 'eggs') text = `Hatch: ${fs.left} ${(fs.left) === 1 ? 'bite' : 'bites'}`;
       else if (fs?.stage === 'fry') text = `Grown: ${fs.left} ${(fs.left) === 1 ? 'bite' : 'bites'}`;
       else if (fs?.stage === 'grown') text = 'Ready!';
+      else if (progress.canNest(target)) { const z = Z(n), have = progress.s.bites; const afford = have >= z; text = afford ? `${n.name}: nest ${z} (you have ${have})` : `${n.name}: nest ${z} (need ${z - have} more)`; return { icon: 'house', text, kind: 'home', afford: afford ? true : undefined, nestable: true }; }
       return { icon: 'house', text, kind: 'home', ready: fs?.stage === 'grown', sub: 'Feeder full' };
     }
     const z = Z(n), have = progress.s.bites, afford = have >= z;
@@ -168,17 +187,30 @@ export class UI {
   pipeInfo(pipe, force) {
     const left = pipe.bitesTotal - pipe.bitesEatenUnique;
     const st = progress.s.stars[pipe.id] || 0;
-    const key = pipe.id + left + st;
+    const key = pipe.id + left + st + progress.strayFound(pipe.id);
     if (!force && key === this.pipeKey) return;
     this.pipeKey = key;
     const stars = `<span class="stars">${[1, 2].map(i => `<span class="${i <= st ? 'on' : ''}">${i <= st ? ICON.star : ICON.starO}</span>`).join('')}</span>`;
-    this.setStatus(pipe.maze.name, left > 0 ? `Bites left ${left}` : 'All bites eaten!', stars);
+    const lost = progress.strayFound(pipe.id) === false ? ' · a lost betta is hiding here' : '';
+    this.setStatus(pipe.maze.name, (left > 0 ? `Bites left ${left}` : 'All bites eaten!') + lost, stars);
   }
   pipeUpdate(pipe) {
     this.pipeInfo(pipe);
-    { const cost = pipe.flareCost(), fb = $('#btnFlare'); const can = progress.s.bites >= cost && pipe.flareT <= 0;
-      const k = cost + '|' + can + '|' + (pipe.flareT > 0); if (fb.dataset.k !== k) { fb.dataset.k = k; $('#flareCost').textContent = pipe.flareT > 0 ? 'Flaring!' : (isTouch() ? `${cost} bites` : `Space · ${cost} bites`); fb.classList.toggle('off', !can); fb.classList.toggle('on', pipe.flareT > 0); } }
-    this.flare(pipe.flareT > 0 ? pipe.flareT / (pipe.wcfg.flareTime || 6) : 0);
+    { const cost = pipe.flareCost(), fb = $('#btnFlare'); const free = progress.s.flares, on = pipe.flareT > 0;
+      const can = !on && (free > 0 || progress.s.bites >= cost);
+      const secs = Math.ceil(pipe.flareT);
+      const k = cost + '|' + can + '|' + on + '|' + free + '|' + (on ? secs : '');
+      if (fb.dataset.k !== k) {
+        fb.dataset.k = k;
+        const what = free > 0 ? 'free' : `${cost} bites`;
+        $('#flareCost').textContent = on ? `${secs}s` : (isTouch() ? what : `Space · ${what}`);
+        $('#flarePips').innerHTML = [...Array(free)].map(() => '<i></i>').join('');
+        fb.classList.toggle('off', !can && !on); fb.classList.toggle('on', on); fb.classList.toggle('free', free > 0 && !on);
+      }
+      fb.style.setProperty('--f', on ? (pipe.flareT / pipe.flareMax).toFixed(3) : 0);
+      fb.classList.toggle('ending', on && pipe.flareT < 1.5);
+    }
+    this.flare(pipe.flareT > 0 ? pipe.flareT / pipe.flareMax : 0);
     const node = NODES[pipe.id];
     const scr = pipe.exitScreen();
     const W = innerWidth, H = innerHeight;
@@ -194,7 +226,7 @@ export class UI {
       const side = s.dir === 'L' || s.dir === 'R';
       const x = Math.max(80, Math.min(W - 80, s.x + (s.dir === 'L' ? 40 : s.dir === 'R' ? -40 : 0))), y = Math.max(70, Math.min(H - 40, s.y + (s.dir === 'U' ? 40 : s.dir === 'D' ? -40 : -42)));
       el.style.transform = `translate(${x}px, ${y}px) translate(-50%, -50%)`;
-      if ((info.afford && (info.kind === 'lady' || info.kind === 'empty')) || info.ready) {
+      if ((info.afford && (info.kind === 'lady' || info.kind === 'empty' || info.nestable)) || info.ready) {
         const ex = pipe.exitObjs.find(e => e.n === s.n); const d = ex.pos.distanceTo(me);
         if (d < goldD) { goldD = d; gold = s; }
       }
@@ -243,6 +275,7 @@ export class UI {
       const info = this.exitInfo(NODES[pipe.id].exits[n]);
       g.fillStyle = col[info.kind || 'maze']; g.beginPath(); g.arc((e.x + 0.5) * s, (e.y + 0.5) * s, s * 0.75, 0, 7); g.fill();
     }
+    const st = pipe.stray; if (st) { const k = 0.6 + 0.4 * Math.abs(Math.sin(performance.now() / 300)); g.fillStyle = '#ffd040'; g.globalAlpha = k; g.beginPath(); g.ellipse((st.x + 0.5) * s, (st.y + 0.5) * s, s * 0.8, s * 0.5, 0, 0, 7); g.fill(); g.beginPath(); g.moveTo((st.x - 0.2) * s, (st.y + 0.5) * s); g.lineTo((st.x - 0.6) * s, (st.y + 0.1) * s); g.lineTo((st.x - 0.6) * s, (st.y + 0.9) * s); g.fill(); g.globalAlpha = 1; }
     const p = pipe.fishPos(); const m = pipe.maze;
     const fx = p.x / 1.6 + m.w / 2, fy = m.h / 2 - p.y / 1.6;
     g.fillStyle = '#ff4a4a'; g.strokeStyle = '#fff'; g.lineWidth = s * 0.25; g.beginPath(); g.arc(fx * s, fy * s, s * 0.6, 0, 7); g.fill(); g.stroke();
@@ -325,7 +358,7 @@ export class UI {
     const s = this.open(`
       <div class="title">
         <div class="logo">Bubble Nest</div>
-        <p class="tag">Swim the pipes. Munch the bites. Collect all 20 bettas.</p>
+        <p class="tag">Swim the pipes. Munch the bites. Collect all ${FISH.length} bettas.</p>
         <div class="menu">
           ${hasSave ? '<button class="btn primary" data-a="continue">Continue</button>' : ''}
           <button class="btn ${hasSave ? '' : 'primary'}" data-a="new">${hasSave ? 'New game' : 'Play'}</button>
@@ -364,8 +397,8 @@ export class UI {
     const s = this.open(`<div class="panel wide"><h2>How to play</h2>
       <div class="cols">
         <section><h3>${ICON.fish} Tanks</h3><p>${t ? 'Tap where you want to swim, or hold and steer. Drag to look around.' : 'Click where you want to swim, or hold and steer. WASD, Space and Shift work too. Right-drag to look around.'} Eat the bites on top, then swim up into the tube. With 5 bettas, throw a Tank Party!</p></section>
-        <section><h3>${ICON.arrows} Pipes</h3><p>${t ? 'Swipe to turn.' : 'Arrow keys or WASD to turn.'} Munch every bite for a star, without a bump for two. Enemies block the pipes: bump one and you flinch back and lose bites. ${t ? 'Tap Flare' : 'Press Space'} to spend bites and flare, and while flared you can eat them!</p></section>
-        <section><h3>${ICON.heart} Nests and fry</h3><p>Swim to the floating leaf to build a bubble nest. Ladies lay eggs, which hatch and grow as you eat bites anywhere. Become each grown fry to collect all 20.</p></section>
+        <section><h3>${ICON.arrows} Pipes</h3><p>${t ? 'Swipe to turn.' : 'Arrow keys or WASD to turn.'} Munch every bite for a star, without a bump for two. Enemies block the pipes: bump one and you flinch back and lose bites. Brine shrimp save up to two free flares. ${t ? 'Tap Flare' : 'Press Space'} whenever you choose: it uses a free flare, or spends bites. While you're flared you can eat them!</p></section>
+        <section><h3>${ICON.heart} Nests and fry</h3><p>Swim to the floating leaf to build a bubble nest. Every tank's female lays eggs, which hatch and grow as you eat bites anywhere. Become each grown fry, and find the lost bettas hiding in the pipes, to collect all ${FISH.length}.</p></section>
         <section><h3>${ICON.star} Frenzy and worlds</h3><p>Nest with every lady in a world and fry there grow twice as fast. Find the bubble machine at the end of a world to reach the next one.</p></section>
       </div><div class="row"><button class="btn primary" data-a="back">Back</button></div></div>`);
     s.querySelector('[data-a=back]').onclick = () => { audio.sfx('ui-back'); back(); };
@@ -403,27 +436,37 @@ export class UI {
     s.querySelector('[data-a=back]').onclick = () => { audio.sfx('ui-back'); back(); };
   }
 
-  collection(back, { inGame }) {
+  collection(back, { inGame }, tab) {
     const phone = Math.min(innerWidth, innerHeight) < 500;
-    const cards = FISH.map((f, i) => {
-      const got = progress.s.collected.includes(f.id);
-      const src = this.lockedHint(f.id);
-      return `<button class="card ${got ? '' : 'locked'} ${progress.s.fish === f.id ? 'current' : ''}" data-f="${f.id}">
-        <span class="pic" style="background-image:url(${this.ctx.portrait(f.id, !got)})"></span>
-        ${phone ? '' : `<span class="nm">${got ? esc(f.name) : '???'}</span><span class="ln">${got ? esc(f.line) : esc(src)}</span>`}
+    const got = (id) => progress.s.collected.includes(id);
+    const card = (f) => `<button class="card ${got(f.id) ? '' : 'locked'} ${progress.s.fish === f.id ? 'current' : ''}" data-f="${f.id}">
+        <span class="pic" style="background-image:url(${this.ctx.portrait(f.id, !got(f.id))})"></span>
+        ${phone ? '' : `<span class="nm">${got(f.id) ? esc(f.name) : '???'}</span><span class="ln">${got(f.id) ? esc(f.line) : esc(this.lockedHint(f.id))}</span>`}
       </button>`;
-    }).join('');
+    const worlds = WORLDS.map(w => ({ id: w.id, name: w.name, fish: FISH.filter(f => f.world === w.id) }));
+    let body;
+    if (phone) {
+      const cur = tab || FISH_BY_ID[progress.s.fish]?.world || 'cw';
+      const tabs = worlds.map(w => `<button class="wtab ${w.id === cur ? 'on' : ''}" data-w="${w.id}">${esc(w.name)} <small>${w.fish.filter(f => got(f.id)).length}/${w.fish.length}</small></button>`).join('');
+      body = `<div class="wtabs">${tabs}</div><div class="grid strip">${worlds.find(w => w.id === cur).fish.map(card).join('')}</div>`;
+    } else {
+      body = `<div class="grid">${worlds.map(w => `<h3 class="wsec">${esc(w.name)} <small>${w.fish.filter(f => got(f.id)).length} / ${w.fish.length}</small></h3>${w.fish.map(card).join('')}`).join('')}</div>`;
+    }
     const s = this.open(`<div class="panel wide coll"><h2>Collection <small>${progress.s.collected.length} / ${FISH.length}</small></h2>
-      <div class="grid ${phone ? 'strip' : ''}">${cards}</div>
+      ${body}
       <div class="row"><button class="btn primary" data-a="back">Back</button></div></div>`);
     s.querySelector('[data-a=back]').onclick = () => { audio.sfx('ui-back'); back(); };
-    s.querySelectorAll('.card').forEach(c => c.onclick = () => { audio.sfx('ui-click'); this.fishCard(c.dataset.f, () => this.collection(back, { inGame }), { inGame }); });
+    s.querySelectorAll('.wtab').forEach(b => b.onclick = () => { audio.sfx('ui-click'); this.collection(back, { inGame }, b.dataset.w); });
+    s.querySelectorAll('.card').forEach(c => c.onclick = () => { audio.sfx('ui-click'); const w = FISH_BY_ID[c.dataset.f].world; this.fishCard(c.dataset.f, () => this.collection(back, { inGame }, w), { inGame }); });
   }
   lockedHint(fid) {
     const lady = Object.values(LADIES).find(l => l.son === fid);
-    if (!lady) return '';
-    const tank = Object.values(NODES).find(n => n.lady === lady.id);
-    return `${lady.name}'s fry, ${WORLD_NAME[tank?.world] || ''}`;
+    if (lady) { const tank = Object.values(NODES).find(n => n.lady === lady.id); return `${lady.name}'s fry, ${WORLD_NAME[tank?.world] || ''}`; }
+    const ft = Object.entries(FRIENDS).find(([, f]) => f.son === fid);
+    if (ft) return `${ft[1].name}'s fry, ${WORLD_NAME[NODES[ft[0]]?.world] || ''}`;
+    const mz = Object.values(NODES).find(n => n.stray?.fish === fid);
+    if (mz) return `Lost in ${mz.name}, ${WORLD_NAME[mz.world]}`;
+    return '';
   }
   fishCard(fid, back, { inGame }) {
     const f = FISH_BY_ID[fid]; const got = progress.s.collected.includes(fid);
@@ -436,7 +479,7 @@ export class UI {
       <div class="big" style="background-image:url(${this.ctx.portrait(fid, !got, true)})"></div>
       <div class="info"><h2>${got ? esc(f.name) : '???'}</h2>
       <p class="variety">${got ? fins : esc(this.lockedHint(fid))}</p>
-      ${got ? `<p class="line">“${esc(f.line)}”</p>` : '<p class="line">Not hatched yet.</p>'}
+      ${got ? `<p class="line">“${esc(f.line)}”</p>` : `<p class="line">${Object.values(NODES).some(n => n.stray?.fish === fid) ? 'Still lost in the pipes.' : 'Not hatched yet.'}</p>`}
       ${trailHtml}
       <div class="row">${canSwim ? '<button class="btn primary" data-a="swim">Swim as this fish</button>' : ''}<button class="btn ${canSwim ? '' : 'primary'}" data-a="back">Back</button></div></div></div>`);
     s.querySelector('[data-a=back]').onclick = () => { audio.sfx('ui-back'); back(); };
@@ -508,8 +551,8 @@ export class UI {
     setTimeout(() => { if (this.screen.contains(card)) this.close(); done?.(); }, 2300);
   }
   victory(done) {
-    const s = this.open(`<div class="panel celebrate big"><h2>Full Collection!</h2><p>All 20 bettas, one bubble nest at a time.</p>
-      <div class="roll"><p>Bubble Nest</p><p>A game idea by Rich Conlan</p><p>20 bettas, 25 nests, 19 mazes</p><p>Thanks for swimming!</p></div>
+    const s = this.open(`<div class="panel celebrate big"><h2>Full Collection!</h2><p>All ${FISH.length} bettas, one bubble nest at a time.</p>
+      <div class="roll"><p>Bubble Nest</p><p>A game idea by Rich Conlan</p><p>${FISH.length} bettas, ${Object.values(NODES).filter(n => n.son).length} nests, ${Object.keys(MAZES).length} mazes</p><p>Thanks for swimming!</p></div>
       <div class="row"><button class="btn primary" data-a="ok">Keep swimming</button></div></div>`, 'dim');
     for (let i = 0; i < 40; i++) { const b = h('i', 'confetti'); b.style.cssText = `left:${Math.random() * 100}%;animation-delay:${Math.random() * 2}s;width:${6 + Math.random() * 20}px;height:${6 + Math.random() * 20}px`; s.appendChild(b); }
     s.querySelector('[data-a=ok]').onclick = () => { audio.sfx('ui-click'); done(); };

@@ -7,10 +7,13 @@ import { FISH_BY_ID } from '../data/fish.js';
 import { Fish, getBody } from '../fishmodel.js';
 import { modelMesh, texture } from '../assets.js';
 import { FX, trailShape } from '../fx.js';
-import { WORLD_STYLE, rimMaterial, makeBites, canvasTexture } from '../world3d.js';
+import { WORLD_STYLE, rimMaterial, bubbleMaterial, makeBites, canvasTexture } from '../world3d.js';
 import { input, isTouch } from '../input.js';
 import { audio } from '../audio.js';
-import { progress, WORLD_BY_ID } from '../progress.js';
+import { progress, WORLD_BY_ID, MAX_FLARES } from '../progress.js';
+import { FISH } from '../data/fish.js';
+const FLARE_MUSIC = { cw: 'music-flare-clearwater', cp: 'music-flare-copper', nn: 'music-flare-neon' };
+const GOLD = new THREE.Color(0xfff2b0);
 
 export const CELL = 1.6;
 const SPEED = 4; // cells per second
@@ -63,7 +66,7 @@ export class PipeMode {
   exitLocked(n) {
     const tgt = this.node?.exits?.[n]; if (!tgt) return false;
     const tn = NODES[tgt.split(':')[0]];
-    return !!(tn?.locked?.bettas && progress.s.collected.length < tn.locked.bettas);
+    return !!(tn?.locked?.bettas && !progress.isGrandOpen());
   }
   openDirs(x, y, who) { return ['U', 'D', 'L', 'R'].filter(d => this.canMove(x, y, d, who)); }
   isJunction(x, y) { const n = ['U', 'D', 'L', 'R'].filter(d => { const [dx, dy] = DV[d]; return this.ch(x + dx, y + dy) !== '#'; }); return n.length >= 3 || (n.length === 2 && !(n.includes('U') && n.includes('D')) && !(n.includes('L') && n.includes('R'))); }
@@ -80,7 +83,7 @@ export class PipeMode {
     this.portalAt = {}; for (const p of maze.portals || []) { this.portalAt[p.a.x + ',' + p.a.y] = p.b; this.portalAt[p.b.x + ',' + p.b.y] = p.a; }
     const scene = this.scene = new THREE.Scene();
     scene.background = new THREE.Color(this.wstyle.back);
-    scene.add(new THREE.HemisphereLight(this.wstyle.amb, 0x203040, this.dark ? 0.5 : 1.3));
+    this.hemi = new THREE.HemisphereLight(this.wstyle.amb, 0x203040, this.dark ? 0.5 : 1.3); this.hemiBase = this.hemi.intensity; scene.add(this.hemi);
     const sun = new THREE.DirectionalLight(this.wstyle.light, this.dark ? 0.5 : 1.8); sun.position.set(-4, 10, 12); scene.add(sun);
     this.pool = new THREE.PointLight(0xfff0d8, this.dark ? 30 : 0, 9, 1.6); scene.add(this.pool);
     this.buildBackdrop();
@@ -97,13 +100,17 @@ export class PipeMode {
     this.queued = null; this.queuedJunctions = 0; this.lastDirSeen = null;
     this.facing = (this.P.dir === 'L') ? -1 : 1;
     this.yawVis = this.facing * Math.PI / 2; this.pitchVis = 0;
-    this.safeT = 1.5; this.dazeT = 0; this.flareT = 0; this.hits = 0; this.flinchCool = 0; this.recoilT = 0; this.waitInput = false;
+    this.safeT = 1.5; this.dazeT = 0; this.flareT = 0; this.flareMax = 1; this.flareGlow = 0; this.punchT = 0; this.flareEats = 0; this.flareArmed = false; this.strayNear = false; this.hits = 0; this.flinchCool = 0; this.recoilT = 0; this.waitInput = false;
     this.temps = []; this.leaving = false; this.portalLock = null;
     this.streak = 0; this.streakT = 0; this.trailT = 0;
     this.buildEnemies();
     this.kingHits = 0; this.kingBumpedFlare = false;
     this.buildGates();
     this.buildSchool(ex);
+    this.buildStray();
+    this.buildAura();
+    this.tubeBase = { color: this.tubeMat.uniforms.uColor.value.clone(), strength: this.tubeMat.uniforms.uStrength.value };
+    this.backBase = this.backdrop.material.color.clone();
     this.camPos = this.wpos(this.P.x, this.P.y).clone();
     this.mouseAxis = null;
     this.placeCamera(1);
@@ -286,6 +293,7 @@ export class PipeMode {
     });
   }
 
+  refreshGates() { for (const g of this.gates || []) { this.scene.remove(g); g.geometry.dispose(); g.material.dispose(); } this.buildGates(); }
   buildGates() {
     this.gates = [];
     for (const e of this.exitObjs) {
@@ -357,6 +365,7 @@ export class PipeMode {
   }
 
   exit() {
+    this.endFlare(true);
     this.ctx.ui.pipeExit();
     this.player?.dispose();
     this.scene?.traverse(o => { if (o.isMesh || o.isInstancedMesh) { if (o.geometry && !o.geometry.userData.keep) o.geometry.dispose?.(); } });
@@ -468,9 +477,10 @@ export class PipeMode {
         if (this.id === 'nn-gm') s.respawnAt = this.t + 20;
         audio.sfx('gulp');
         progress.eat(1, this.world);
-        this.startFlare();
+        this.storeFlare(!!s.respawned);
       }
     }
+    this.pickStray();
     for (const t of this.temps) if (t.alive && t.x === P.x && t.y === P.y) { t.alive = false; progress.eat(1, this.world, { counts: false }); audio.sfx('regrab', { vol: 0.6 }); this.ctx.biteBump(); }
   }
 
@@ -644,16 +654,114 @@ export class PipeMode {
   }
 
   flareCost() { return this.id === 'nn-gm' ? 15 : [6, 10, 15][['cw', 'cp', 'nn'].indexOf(this.world)] ?? 6; }
-  startFlare() {
-    this.flareT = this.id === 'nn-gm' ? 6 : (this.wcfg.flareTime ?? 6); this.flareTicked = false; this.kingBumpedFlare = false;
-    audio.sfx('flare'); audio.setBright(true);
-    this.fx.burst(...this.fishPos().toArray(), 18, { shape: 'spark', color: 0xffb070, size: 0.5, speed: 3, life: 0.6, flat: true });
-    for (const e of this.enemies) if (e.state === 'roam' || e.state === 'dart' || e.state === 'tell') { e.state = 'scared'; if (e.dir) { e.dir = OPP[e.dir]; if (e.f) { const [dx, dy] = DV[OPP[e.dir]]; e.x += dx; e.y += dy; e.f = 1 - e.f; } } }
-    this.ctx.tip('flare');
+  flareTime() { return this.id === 'nn-gm' ? 6.5 : (this.wcfg.flareTime ?? 6); }
+  // brine shrimp: saved as a free flare for when you choose (full: worth a flare's bites instead)
+  storeFlare(respawned = false) {
+    if (progress.addFlare()) {
+      audio.sfx('flare-stored');
+      const me = this.fishPos();
+      this.fx.burst(me.x, me.y, 0.3, 12, { shape: 'spark', color: 0xffd070, size: 0.35, speed: 2.2, life: 0.5, flat: true });
+      this.ctx.flareStored?.(progress.s.flares);
+      this.ctx.tip('freeflare');
+    } else {
+      const n = (respawned || this.id === 'nn-gm') ? 1 : this.flareCost();
+      progress.eat(n, this.world, { counts: false }); this.ctx.biteBump(n);
+      [0, 90, 180].forEach((d, k) => setTimeout(() => audio.sfx('nip', { semis: k * 2 }), d));
+      this.ctx.toast(`Flares full: +${n} bites`, 'bite');
+    }
   }
-  // spend bites to flare (Space / F / the Flare button)
+  startFlare() {
+    this.flareT = this.flareMax = this.flareTime(); this.flareTicked = false; this.kingBumpedFlare = false; this.flareEats = 0;
+    audio.sfx('flare-go'); audio.flare(FLARE_MUSIC[this.world]);
+    const me = this.fishPos();
+    this.fx.burst(me.x, me.y, 0.3, 26, { shape: 'spark', color: 0xffe080, size: 0.55, speed: 4, life: 0.7, flat: true });
+    this.shockwave(me);
+    if (!progress.s.settings.reduceMotion) { this.punchT = 0.65; this.ctx.shake(0.18); }
+    this.ctx.flareFx?.(true);
+    for (const e of this.enemies) if (e.state === 'roam' || e.state === 'dart' || e.state === 'tell') { e.state = 'scared'; if (e.dir) { e.dir = OPP[e.dir]; if (e.f) { const [dx, dy] = DV[OPP[e.dir]]; e.x += dx; e.y += dy; e.f = 1 - e.f; } } }
+    this.ctx.tip('flared');
+  }
+  endFlare(instant = false) {
+    const was = this.flareT > 0 || this.flareGlow > 0;
+    this.flareT = 0; this.punchT = 0;
+    if (instant) this.applyFlareGlow(0);
+    audio.flare(null, instant);
+    if (was) this.ctx.flareFx?.(false);
+  }
+  // a gold ring that sweeps out across the pipes from the fish
+  shockwave(me) {
+    const geo = new THREE.RingGeometry(0.8, 1.15, 48);
+    const mat = new THREE.MeshBasicMaterial({ color: 0xfff2b0, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide });
+    const ring = new THREE.Mesh(geo, mat); ring.position.set(me.x, me.y, 0.5); ring.renderOrder = 6;
+    this.scene.add(ring); this.waves = this.waves || []; this.waves.push({ ring, t: 0 });
+  }
+  applyFlareGlow(k) {
+    this.flareGlow = k;
+    const u = this.tubeMat.uniforms, b = this.tubeBase;
+    const toward = this.world === 'nn' ? 0.5 : 1;
+    u.uColor.value.copy(b.color).lerp(GOLD, toward * k);
+    u.uStrength.value = b.strength + (this.world === 'nn' ? 0.4 : 1.0) * k;
+    this.backdrop.material.color.copy(this.backBase).multiplyScalar(1 - 0.32 * k);
+    this.hemi.intensity = this.hemiBase * (1 - 0.25 * k);
+    if (this.aura) { this.aura.material.uniforms.uStrength.value = 1.3 * k; this.aura.visible = k > 0.01; }
+  }
+  buildAura() {
+    const def = this.player.def;
+    const m = new THREE.Mesh(new THREE.SphereGeometry(1, 24, 16), rimMaterial(new THREE.Color(def.sheen), 0, 3.2, 0.0));
+    m.scale.set(1.25, 0.8, 0.8); m.renderOrder = 5; m.visible = false; this.scene.add(m); this.aura = m;
+  }
+  // a lost betta, curled in a glass bubble, somewhere far from the exits
+  buildStray() {
+    this.stray = null;
+    const st = this.node?.stray; if (!st || progress.strayFound(this.id) !== false) return;
+    const def = FISH_BY_ID[st.fish]; const g = new THREE.Group();
+    const f = new Fish(getBody('male'), def, { finScale: 1.0 }); f.group.scale.setScalar(1.25); f.group.rotation.y = Math.PI / 2; f.swim = 0.25; g.add(f.group);
+    const bub = new THREE.Mesh(new THREE.SphereGeometry(0.72, 24, 16), bubbleMaterial()); bub.renderOrder = 6; g.add(bub);
+    const glint = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glintTex(), color: 0xffd040, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: false }));
+    glint.scale.setScalar(1.6); glint.position.set(0.35, 0.35, 0.4); glint.renderOrder = 7; g.add(glint);
+    const halo = new THREE.Sprite(new THREE.SpriteMaterial({ map: this.glintTex(true), color: 0xffd040, transparent: true, opacity: 0.55, blending: THREE.AdditiveBlending, depthWrite: false })); halo.scale.setScalar(2.3); halo.renderOrder = 5; g.add(halo);
+    // keep him lit in the dark world
+    const light = new THREE.PointLight(0xffe0a0, this.dark ? 2.5 : 1.2, 3.5); light.position.set(0, 0.3, 1); g.add(light);
+    this.wpos(st.x, st.y, g.position); g.position.z = 0.15;
+    this.scene.add(g);
+    this.stray = { ...st, def, g, f, bub, glint };
+  }
+  glintTex(soft) {
+    if (soft) return canvasTexture(64, 64, (c, w, h) => { c.clearRect(0, 0, w, h); const gr = c.createRadialGradient(w / 2, h / 2, w * 0.28, w / 2, h / 2, w / 2); gr.addColorStop(0, 'rgba(255,210,90,0.9)'); gr.addColorStop(1, 'rgba(255,200,80,0)'); c.fillStyle = gr; c.fillRect(0, 0, w, h); });
+    return canvasTexture(64, 64, (c, w, h) => { c.clearRect(0, 0, w, h); const gr = c.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, w / 2); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.25, 'rgba(255,220,120,0.6)'); gr.addColorStop(1, 'rgba(255,200,80,0)'); c.fillStyle = gr; c.fillRect(0, 0, w, h); c.strokeStyle = 'rgba(255,255,255,0.9)'; c.lineWidth = 2; c.beginPath(); c.moveTo(w / 2, 4); c.lineTo(w / 2, h - 4); c.moveTo(4, h / 2); c.lineTo(w - 4, h / 2); c.stroke(); });
+  }
+  updateStray(dt) {
+    const S = this.stray; if (!S) return;
+    S.g.position.y = this.wpos(S.x, S.y).y + Math.sin(this.t * 2) * 0.08;
+    S.f.update(dt); S.bub.material.uniforms.uTime.value = this.t;
+    const ph = (this.t % 1.5) / 1.5; const k = ph < 0.25 ? Math.sin(ph / 0.25 * Math.PI) : 0;
+    S.glint.material.opacity = 0.35 + 0.65 * k; S.glint.scale.setScalar(1.1 + 0.9 * k);
+    const d = Math.abs(this.P.x - S.x) + Math.abs(this.P.y - S.y);
+    if (this.fishPos().distanceTo(this.wpos(S.x, S.y)) < 0.5 * CELL) { this.pickStray(true); return; }
+    if (d <= 3 && !this.strayNear) { this.strayNear = true; audio.sfx('portal', { vol: 0.3 }); }
+  }
+  pickStray(near = false) {
+    const S = this.stray; if (!S || (!near && (this.P.x !== S.x || this.P.y !== S.y))) return;
+    this.stray = null;
+    const p = S.g.position.clone();
+    this.scene.remove(S.g); S.f.dispose?.();
+    audio.sfx('found');
+    this.fx.burst(p.x, p.y, 0.4, 30, { shape: 'star', color: 0xffd040, size: 0.45, speed: 3, life: 1.0, flat: true });
+    this.fx.burst(p.x, p.y, 0.4, 16, { shape: 'bubble', color: 0xffffff, size: 0.35, speed: 2.4, life: 0.9, flat: true });
+    progress.findStray(this.id);
+    this.ctx.toast(`You found ${S.def.name}! ${progress.s.collected.length} / ${FISH.length} bettas`, 'fish');
+    // he joins your school straight away
+    if (progress.s.settings.school !== false) {
+      const f = new Fish(getBody('male'), S.def, { finScale: 1.1 }); f.group.scale.setScalar(1.15); f.swim = 0.7;
+      this.scene.add(f.group); this.school.unshift({ f, seg: 0 });
+      if (this.school.length > 4) { const x = this.school.pop(); this.scene.remove(x.f.group); x.f.dispose?.(); }
+    }
+    this.ctx.statusChanged?.();
+  }
+  // spend a free flare, or bites, to flare (Space / F / the Flare button)
   tryFlare() {
     if (this.leaving || this.flareT > 0) return false;
+    if (progress.useFlare()) { this.ctx.flareStored?.(progress.s.flares); this.startFlare(); return true; }
     const cost = this.flareCost();
     if (progress.s.bites < cost) { audio.sfx('deny'); this.ctx.toast(`Flaring costs ${cost} bites: you need ${cost - progress.s.bites} more.`, 'bite'); return false; }
     progress.lose(cost); this.ctx.biteBump(-cost);
@@ -686,7 +794,7 @@ export class PipeMode {
     }
     e.state = 'eaten'; e.eatenUntil = this.t + 8; e.obj.visible = false;
     const gain = e.eatenOnce ? 1 : 5; e.eatenOnce = true;
-    audio.sfx('chomp'); progress.eat(gain, this.world); this.ctx.biteBump(gain);
+    audio.sfx('chomp', { semis: Math.min(5, this.flareEats++) }); progress.eat(gain, this.world); this.ctx.biteBump(gain);
     const p = this.epos(e);
     this.fx.burst(p.x, p.y, 0.3, 18, { shape: 'star', color: 0xffe080, size: 0.45, speed: 3, life: 0.7, flat: true });
     this.fx.burst(p.x, p.y, 0.3, 10, { shape: 'bubble', color: 0xffffff, size: 0.35, speed: 2, life: 0.8, flat: true });
@@ -765,12 +873,20 @@ export class PipeMode {
     if (this.dazeT > 0) this.dazeT -= dt;
     if (this.flinchCool > 0) this.flinchCool -= dt;
     if (this.recoilT > 0) this.recoilT -= dt;
-    if (input.enabled && input.wasPressed('Space', 'KeyF')) this.tryFlare();
+    // only a fresh press after you arrive counts (Space also rises in the tank)
+    if (!this.flareArmed && !input.keys.has('Space') && !input.keys.has('KeyF')) this.flareArmed = true;
+    if (this.flareArmed && input.enabled && input.wasPressed('Space', 'KeyF')) this.tryFlare();
     if (this.flareT > 0) {
       this.flareT -= dt;
-      if (this.flareT < 1 && !this.flareTicked) { this.flareTicked = true; audio.sfx('flare-end'); }
-      if (this.flareT <= 0) audio.setBright(false);
+      if (this.flareT < 1.5 && !this.flareTicked) { this.flareTicked = true; audio.sfx('flare-end'); }
+      if (this.flareT <= 0) this.endFlare();
     }
+    { const want = this.flareT > 0 ? 1 : 0; const g = this.flareGlow + (want - this.flareGlow) * Math.min(1, dt * (want ? 10 : 3)); if (Math.abs(g - this.flareGlow) > 0.001 || (want === 0 && this.flareGlow > 0)) this.applyFlareGlow(g < 0.005 ? 0 : g); }
+    if (this.punchT > 0) this.punchT = Math.max(0, this.punchT - dt);
+    if (this.waves?.length) for (const w of this.waves) { w.t += dt; const k = w.t / 0.6; w.ring.scale.setScalar(1 + k * 9); w.ring.material.opacity = 0.85 * (1 - k); if (k >= 1) { this.scene.remove(w.ring); w.ring.geometry.dispose(); w.ring.material.dispose(); w.dead = true; } }
+    if (this.waves) this.waves = this.waves.filter(w => !w.dead);
+    this.updateStray(dt);
+    if (!this.enemyTipT && this.flareT <= 0 && this.enemies.some(e => (e.state === 'roam' || e.state === 'dart') && this.distTo(e) < 3)) { this.enemyTipT = 1; this.ctx.tip('enemy'); }
     this.streakT -= dt; if (this.streakT <= 0) this.streak = 0;
     if (!this.leaving) this.movePlayer(dt);
     this.updateEnemies(dt);
@@ -791,7 +907,7 @@ export class PipeMode {
     // refill
     if (this.maze.refill) for (const b of this.biteCells) if (!b.alive && b.respawnAt && this.t > b.respawnAt) { b.alive = true; b.respawnAt = 0; }
     this.temps = this.temps.filter(t => t.alive && t.until > this.t);
-    this.shrimps.forEach((s, i) => { if (!s.alive && s.respawnAt && this.t > s.respawnAt) { s.alive = true; s.respawnAt = 0; this.shrimpMeshes[i].visible = true; } });
+    this.shrimps.forEach((s, i) => { if (!s.alive && s.respawnAt && this.t > s.respawnAt) { s.alive = true; s.respawnAt = 0; s.respawned = true; this.shrimpMeshes[i].visible = true; } });
     for (const g of this.gates || []) g.material.emissiveIntensity = 0.6 + 0.3 * Math.sin(this.t * 3);
     this.updateFishVisual(dt);
     this.updateSchool(dt);
@@ -834,7 +950,8 @@ export class PipeMode {
       const p = g.position, [dx, dy] = DV[P.dir || 'R'];
       this.fx.emit({ x: p.x - dx * 0.5, y: p.y + dy * 0.5, z: 0.1, vy: 0.3, rise: 0.4, life: 1.0, size: 0.18, color: trail === 'rainbow' ? new THREE.Color().setHSL((this.t * 0.4) % 1, 0.8, 0.7) : trail === 'crown' ? 0xffd040 : def.trail, shape: trailShape(trail), alpha: 0.75, wobble: 0.6 });
     }
-    if (this.flareT > 0 && Math.random() < dt * 20) this.fx.emit({ x: g.position.x + (Math.random() - 0.5) * 0.8, y: g.position.y + (Math.random() - 0.5) * 0.6, z: 0.3, life: 0.5, size: 0.25, shape: 'spark', color: 0xffc070, alpha: 0.9 });
+    if (this.aura?.visible) { this.aura.position.copy(g.position); this.aura.position.z = 0.2; this.aura.rotation.z = this.t * 0.5; this.aura.scale.set(1.25 + 0.06 * Math.sin(this.t * 9), 0.8, 0.8); }
+    if (this.flareT > 0 && Math.random() < dt * 40) this.fx.emit({ x: g.position.x + (Math.random() - 0.5) * 0.8, y: g.position.y + (Math.random() - 0.5) * 0.6, z: 0.3, life: 0.5, size: 0.25, shape: 'spark', color: 0xffc070, alpha: 0.9 });
   }
 
   updateBiteMesh() {
@@ -860,7 +977,8 @@ export class PipeMode {
     const aspect = this.camera.aspect;
     const cellsW = isTouch() ? 12 : 15;
     const visW = cellsW * CELL;
-    const dist = (visW / 2) / Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)) / aspect;
+    const pk = this.punchT > 0 ? (this.punchT > 0.5 ? (0.65 - this.punchT) / 0.15 : this.punchT / 0.5) : 0;
+    const dist = (visW / 2) / Math.tan(THREE.MathUtils.degToRad(this.camera.fov / 2)) / aspect * (1 - 0.06 * pk);
     this.camDist = dist;
     const visH = visW / aspect;
     // dead zone follow
@@ -896,6 +1014,6 @@ export class PipeMode {
     return this.enemies.map(e => { const v = this.epos(e).project(this.camera); return { x: v.x, y: v.y, d: this.distTo(e), state: e.state }; });
   }
   debug() {
-    return { boss: this.enemies.find(e => e.type === 'king') ? { hits: this.kingHits, state: this.enemies.find(e => e.type === 'king').state } : null, school: this.school?.length || 0, maze: this.id, leftBy: this.leftBy || null, x: this.P.x, y: this.P.y, dir: this.P.dir, f: +this.P.f.toFixed(2), moving: this.P.moving, queued: this.queued, flare: +this.flareT.toFixed(2), hits: this.hits, bitesLeft: this.bitesTotal - this.bitesEatenUnique, bitesTotal: this.bitesTotal, cleared: !!this.cleared, safe: +this.safeT.toFixed(2), enemies: this.enemies.map(e => ({ type: e.type, x: e.x, y: e.y, state: e.state })) };
+    return { lost: this.node?.stray ? { fish: this.node.stray.fish, x: this.node.stray.x, y: this.node.stray.y, found: progress.strayFound(this.id) } : null, freeFlares: progress.s.flares, flareMax: this.flareMax, boss: this.enemies.find(e => e.type === 'king') ? { hits: this.kingHits, state: this.enemies.find(e => e.type === 'king').state } : null, school: this.school?.length || 0, maze: this.id, leftBy: this.leftBy || null, x: this.P.x, y: this.P.y, dir: this.P.dir, f: +this.P.f.toFixed(2), moving: this.P.moving, queued: this.queued, flare: +this.flareT.toFixed(2), hits: this.hits, bitesLeft: this.bitesTotal - this.bitesEatenUnique, bitesTotal: this.bitesTotal, cleared: !!this.cleared, safe: +this.safeT.toFixed(2), enemies: this.enemies.map(e => ({ type: e.type, x: e.x, y: e.y, state: e.state })) };
   }
 }

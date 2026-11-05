@@ -1,8 +1,8 @@
 # Bubble Nest
 
-*Swim the pipes. Munch the bites. Build the nests. Collect all 20 bettas.*
+*Swim the pipes. Munch the bites. Build the nests. Collect all 47 bettas.*
 
-You're a betta fish in a little tank with a glass tube hanging into it. Swim up the tube and the world becomes a glowing maze of water pipes: munch trails of betta bites, flare your gills to chase off snails and shrimp, and follow the pipes to other tanks. Claim empty tanks with a bubble nest, meet lady bettas, raise their fry, and become each new fish. You can't lose, only collect.
+You're a betta fish in a little tank with a glass tube hanging into it. Swim up the tube and the world becomes a glowing maze of water pipes: munch trails of betta bites, flare your gills to chase off snails and shrimp, and follow the pipes to other tanks. Claim empty tanks with a bubble nest, meet lady bettas, raise their fry, find the lost bettas hiding in the pipes, and become each new fish. You can't lose, only collect.
 
 **[▶ Play Bubble Nest](https://bubblenest.synapticnoise.com/)** in your browser. No install, works on desktop and on phones held sideways.
 
@@ -25,13 +25,13 @@ Every adventure starts in a tank. Click or tap where you want to swim, eat the b
 | ![Neon Night](media/screenshots/neon.png) | ![Your school](media/screenshots/school.png) |
 | **Neon Night:** an aquarium shop after hours. The pipes are dark, portal rings whisk you across the maze, and jellyfish pulse. | **Your school:** the bettas you've collected swim along behind you through the pipes. |
 
-19 named mazes, 28 tanks, 19 lady bettas and 20 bettas to collect, each with its own colours, fins and personality.
+20 named mazes, 28 tanks, 28 female bettas to nest with, 18 lost bettas hiding in the pipes, and 47 bettas to collect, each with its own colours, fins and personality.
 
 ## How to play
 
 - **In a tank:** click (or tap) where you want to swim, or hold the button and steer. Click a bite to go and eat it; click the tube, or the **To the pipes** sign, to swim up into it. WASD works too: W swims where the camera looks, A and D turn, S backs up, Space rises and Shift dives. Right-drag (or drag a finger) to look around.
-- **In the pipes:** arrow keys or WASD to turn (or hold the mouse button). You keep swimming until you hit a wall. Snails, shrimp and friends block the pipes: bump one and you flinch back and lose a real chunk of bites (more in later worlds, and a bit more when you're carrying a lot). Press Space (or tap **Flare**) to spend a few bites and flare, and while you're flared you can eat them. Brine shrimp give a free flare.
-- **Nests and fry:** exit signs show what's beyond and what a nest costs. Swim to the floating leaf to build a nest. Empty tanks become yours (with a feeder and a new bubble trail). Lady bettas lay eggs; they hatch and grow as you eat bites anywhere, and then you can become the grown fry.
+- **In the pipes:** arrow keys or WASD to turn (or hold the mouse button). You keep swimming until you hit a wall. Snails, shrimp and friends block the pipes: bump one and you flinch back and lose a real chunk of bites (more in later worlds, and a bit more when you're carrying a lot). Brine shrimp save a free flare (you can hold two). Press Space (or tap **Flare**) whenever you choose: it uses a free flare, or spends a few bites. The music kicks into a flare track, the pipes blaze gold, and while you're flared you can eat them.
+- **Nests and fry:** exit signs show what's beyond and what a nest costs. Swim to the floating leaf to build a nest. Empty tanks become yours (with a feeder and a new bubble trail). Every tank's female betta lays eggs, including the friends in your home tanks; they hatch and grow as you eat bites anywhere, and then you can become the grown fry.
 - **Action:** E or Enter. **Map:** Tab. **Pause:** Esc or P. **Mute:** M.
 - **On a phone** (sideways): tap to swim, drag to look, the stick on the left and the arrow buttons work too, and you swipe to turn in the pipes. You can install it from your browser's menu to play full screen, even offline.
 
@@ -42,7 +42,8 @@ Enemies only knock bites out of you, so you can never lose. Progress saves autom
 *Light spoilers.*
 
 - **Bubble machines:** at the end of a world, a bubble machine carries you somewhere new. Where it takes you is part of the fun.
-- **The Grand Maze:** collect 15 bettas and a sealed gate in Neon Night opens onto the biggest maze of all, home of King Claw. Flare and bump him three times to win the Crown bubble trail.
+- **Lost bettas:** every maze after the first hides a little betta curled in a glowing bubble, far from the exits. Swim into him and he joins your collection and your school.
+- **The Grand Maze:** collect 35 bettas and a sealed gate in Neon Night opens onto the biggest maze of all, home of King Claw. Flare and bump him three times to win the Crown bubble trail.
 
 ![The Grand Maze](media/screenshots/grandmaze.png)
 
@@ -55,10 +56,10 @@ Bubble Nest was made by [Claude Code](https://claude.com/claude-code) with
 
 gamegen wrote a brief and a design, had review agents (a player, an engineer and an art director) critique it over two rounds, made the art, models, music and sound with these plugins, built the game in three.js, and play-tested it (an autopilot crossed every maze between every pair of exits, and a test run went from New Game to the Full Collection ending):
 
-- [meshgen](https://github.com/zeveck/meshgen): the 3D betta bodies (male and female), snail, shrimp, crayfish, bubble machine, sleeping cat, armchair and the tank decorations. The fins are built in code on top of the bodies, so 20 bettas share two models.
+- [meshgen](https://github.com/zeveck/meshgen): the 3D betta bodies (male and female), snail, shrimp, crayfish, bubble machine, sleeping cat, armchair and the tank decorations. The fins are built in code on top of the bodies, so all 47 bettas share two models.
 - [imagegen2](https://github.com/zeveck/imagegen2): the Rust concept art that set the style, the concept pictures the 3D models were made from, and the app icon.
 - [nanogen](https://github.com/zeveck/nanogen): the title art, the three world panoramas, the tank posters, gravel and room textures.
-- [audiogen](https://github.com/zeveck/audiogen): the music for each world and the tanks, the victory sting, and 42 sound effects.
+- [audiogen](https://github.com/zeveck/audiogen): the music for each world and the tanks, the victory sting, a flare track for each world, and 44 sound effects plus three ambience loops.
 
 Then it was published, after this reply to the confirmation:
 
@@ -116,6 +117,23 @@ What changed:
 ![A bump in Neon Night costs 24 bites](media/screenshots/bump.png)
 
 A review agent checked the numbers first and suggested the cap and moving the costs into the game's data. The economy checker in `tools/` now models the new costs, and every maze crossing and the full playthrough were tested again.
+
+### The fourth update
+
+> instead of 20 there should be 47 bettas to collect across the levels. the user should choose when to flare. flaring should change the music and be otherwise obvious/exciting.
+
+What changed:
+
+- **47 bettas:** your first fish, a fry from every female betta (the 19 ladies plus the 9 friends who live in your home and empty tanks, who now nest with you too), and 18 lost bettas, one hidden in every maze after the first (not the Grand Maze). 27 new fish, each with its own fin shape and colours. The Collection groups them by world, with tabs on phones.
+- **You choose when to flare:** brine shrimp no longer flare you on the spot. They save a free flare (up to two, shown as gold pips on the Flare button), and you use it when you want. A shrimp eaten with two saved gives a flare's worth of bites instead.
+- **Flaring is a big moment:** each world has its own flare track (made with audiogen) that takes over the music while you're flared, then hands back to the world music right where it left off. "FLARE!" pops up, a gold ring sweeps out across the pipes, the pipes blaze white-gold, the screen edges glow, the camera punches in, and the Flare button turns into a countdown. Flares last a little longer (7 / 6 / 5.5 seconds).
+- **The Grand Maze** opens at 35 bettas (saves that already had it open keep it).
+
+![Flaring in Copperworks](media/screenshots/flare.png)
+
+![The Collection](media/screenshots/collection.png)
+
+Three review agents (a player, an engineer and an art and sound director) checked the plan first. They caught a lot: wasted flares from mashing the button, a gold flare that would vanish in the copper world, look-alike fish, old saves that couldn't reach 47, and music that would have restarted after every flare. A bug hunter then went over the finished change. Every maze crossing, every lost betta, and a full playthrough to the 47-betta ending were tested.
 
 The design notes, reviews and asset log are in [`design/`](design/), and the maze layouts and their checker in [`tools/`](tools/).
 

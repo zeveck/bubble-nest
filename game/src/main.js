@@ -30,7 +30,7 @@ const BOOT = [
   'assets/tex/gravel.jpg', 'assets/bg/pano-clearwater.jpg', 'assets/bg/poster-1.jpg', 'assets/bg/poster-2.jpg', 'assets/bg/poster-3.jpg', 'assets/bg/poster-4.jpg',
 ];
 const LATER = ['model:crayfish', 'model:cat', 'model:armchair', 'assets/bg/pano-copper.jpg', 'assets/bg/pano-neon.jpg', 'assets/tex/room-wall.jpg', 'assets/tex/room-floor.jpg', 'assets/bg/room-window.jpg'];
-const SFX = ['nip', 'gulp', 'flare', 'flare-end', 'bonk', 'scatter', 'regrab', 'shoo', 'clear', 'star', 'tube', 'splash', 'feeder', 'pop', 'eggs', 'hatch', 'grown', 'newfish', 'frenzy', 'courtship', 'bloop', 'wipe', 'dock', 'hiss', 'clunk', 'current-loop', 'portal', 'wrap', 'chirp', 'thrum', 'click', 'flick', 'swat', 'deny', 'news', 'travel', 'worldcard', 'ui-click', 'ui-back', 'amb-tank', 'amb-room', 'amb-pipe'];
+const SFX = ['nip', 'gulp', 'chomp', 'flinch', 'flare-go', 'flare-stored', 'found', 'flare-end', 'bonk', 'scatter', 'regrab', 'shoo', 'clear', 'star', 'tube', 'splash', 'feeder', 'pop', 'eggs', 'hatch', 'grown', 'newfish', 'frenzy', 'courtship', 'bloop', 'wipe', 'dock', 'hiss', 'clunk', 'current-loop', 'portal', 'wrap', 'chirp', 'thrum', 'click', 'flick', 'swat', 'deny', 'news', 'travel', 'worldcard', 'ui-click', 'ui-back', 'amb-tank', 'amb-room', 'amb-pipe'];
 
 let mode = null, modeName = 'boot', paused = false, frozen = false, busy = false;
 let titleMode = null;
@@ -65,10 +65,17 @@ function portrait(fid, silhouette = false, big = false) {
   const c = document.createElement('canvas'); c.width = c.height = size; const g = c.getContext('2d');
   const img = g.createImageData(size, size);
   for (let y = 0; y < size; y++) img.data.set(px.subarray((size - 1 - y) * size * 4, (size - y) * size * 4), y * size * 4);
-  if (silhouette) for (let i = 0; i < img.data.length; i += 4) { if (img.data[i + 3] > 10) { img.data[i] = 40; img.data[i + 1] = 70; img.data[i + 2] = 85; } }
+  if (silhouette) { const [r, gg, b] = { cw: [36, 96, 110], cp: [118, 72, 40], nn: [78, 44, 120] }[def.world] || [40, 70, 85]; for (let i = 0; i < img.data.length; i += 4) { if (img.data[i + 3] > 10) { img.data[i] = r; img.data[i + 1] = gg; img.data[i + 2] = b; } } }
   g.putImageData(img, 0, 0);
   portraits[key] = c.toDataURL();
   return portraits[key];
+}
+
+// render the Collection's portraits a couple per frame after boot, so opening it never stalls
+function prerenderPortraits() {
+  const todo = FISH.map(f => [f.id, !progress.s.collected.includes(f.id)]);
+  const step = () => { for (let k = 0; k < 2 && todo.length; k++) { const [id, sil] = todo.shift(); portrait(id, sil); } if (todo.length) (window.requestIdleCallback || requestAnimationFrame)(step); };
+  setTimeout(step, 1500);
 }
 
 // ---------- context for modes and UI ----------
@@ -82,6 +89,8 @@ const ctx = {
   lossPop(n, x, y) { ui.lossPop(n, x, y); },
   shake(a) { if (!progress.s.settings.reduceMotion) ctx.shakeAmt = Math.max(ctx.shakeAmt, a); },
   statusChanged() { refreshStatus(); },
+  flareFx(on) { ui.flareFx(on); },
+  flareStored(n) { ui.flareStored(n); },
   tip(key) { showTip(key); },
   currentWorld() { if (modeName === 'room') return progress.s.at && NODES[progress.s.at] ? NODES[progress.s.at].world : 'cw'; return mode?.world || NODES[progress.s.at]?.world || 'cw'; },
   where() { return modeName === 'pipe' ? mode.id : modeName === 'tank' ? mode.id : 'room'; },
@@ -174,7 +183,7 @@ function switchMode(name, params) {
     progress.save(true);
     if (first || (params.from === 'dock' && !progress.s.seen.worlds.includes(w))) { if (!progress.s.seen.worlds.includes(w)) progress.s.seen.worlds.push(w); audio.sfx('worldcard'); setTimeout(() => ui.worldCard(w), 300); }
     if (params.tankId === 'cw-home' && !progress.s.seen.tips.includes('start')) showTip('start');
-    if (progress.s.won && !progress.s.seen.victory) setTimeout(() => { if (!ui.isOpen) startVictory(); }, 900);
+    if (progress.s.won && !progress.s.seen.victory) setTimeout(victoryWhenFree, 900);
   } else if (name === 'pipe') {
     if (!progress.s.seen.visited.includes(params.mazeId)) progress.s.seen.visited.push(params.mazeId);
     const w = MAZES[params.mazeId].world;
@@ -183,9 +192,11 @@ function switchMode(name, params) {
     audio.ambience('amb-pipe');
     progress.save(true);
     if (!progress.s.seen.tips.includes('pipe')) showTip('pipe');
+    audio.load('assets/audio/music/' + { cw: 'music-flare-clearwater', cp: 'music-flare-copper', nn: 'music-flare-neon' }[w] + '.mp3');
   } else if (name === 'room') {
     progress.s.at = 'room'; progress.s.roomFound = true; progress.save(true);
     audio.music('music-room'); audio.ambience('amb-room');
+    if (!params.victory && progress.s.won && !progress.s.seen.victory) setTimeout(victoryWhenFree, 900);
   }
   refreshStatus();
 }
@@ -207,6 +218,12 @@ function doBecome(fid, tankId) {
   }
   refreshStatus();
 }
+// start the victory once nothing else is on screen (a world card, a fish card...)
+function victoryWhenFree() {
+  if (progress.s.seen.victory || !progress.s.won) return;
+  if (ui.isOpen || busy || paused || modeName === 'title') { setTimeout(victoryWhenFree, 500); return; }
+  startVictory();
+}
 function startVictory() {
   if (busy) { setTimeout(startVictory, 300); return; }
   progress.s.seen.victory = true; progress.save(true);
@@ -226,8 +243,10 @@ const TIPS = {
   start: () => isTouch() ? 'Tap where you want to swim, or hold and steer. Drag to look around.' : 'Click where you want to swim, or hold the mouse button and steer. WASD works too.',
   rise: () => isTouch() ? 'Tap the floating bites to swim up and eat them!' : 'Click the floating bites to swim up and eat them!',
   tube: () => isTouch() ? 'Tap "To the pipes", or swim up into the glowing tube' : 'Click "To the pipes", or swim up into the glowing tube',
-  pipe: () => isTouch() ? 'Swipe to turn. Tap Flare to eat enemies.' : 'Arrow keys or WASD to turn. Space to flare and eat enemies.',
-  flare: () => 'You flared! Eat the enemies for bonus bites',
+  pipe: () => isTouch() ? 'Swipe to turn. Grab brine shrimp to save free flares.' : 'Arrow keys or WASD to turn. Grab brine shrimp to save free flares.',
+  freeflare: () => isTouch() ? 'Free flare saved! Tap Flare when you need it.' : 'Free flare saved! Press Space when you need it.',
+  enemy: () => isTouch() ? 'Enemy ahead! Tap Flare and eat them!' : 'Enemy ahead! Space: flare and eat them!',
+  flared: () => 'You flared! Eat the enemies for bonus bites',
 };
 function showTip(key) {
   if (progress.s.seen.tips.includes(key)) return;
@@ -238,7 +257,7 @@ function showTip(key) {
 // ---------- menus ----------
 function toggleMute() { progress.s.settings.muted = !progress.s.settings.muted; applySettings(); progress.save(true); ui.toast(progress.s.settings.muted ? 'Sound off' : 'Sound on', progress.s.settings.muted ? 'mute' : 'sound'); }
 ctx.toggleMute = toggleMute;
-function resumeBack() { ui.close(); paused = false; audio.duck(false); }
+function resumeBack() { ui.close(); paused = false; audio.duck(false); input.clear(); if (modeName === 'pipe') mode.flareArmed = false; }
 function pauseGame() { if (paused || modeName === 'boot' || modeName === 'title') return; paused = true; input.clear(); audio.duck(true); ui.pause(); }
 function openMap() { paused = true; input.clear(); audio.duck(true); ui.map(resumeBack); }
 function pauseAction(a) {
@@ -330,6 +349,11 @@ progress.on((type, d) => {
   if (type === 'grown') { audio.sfx('grown'); ui.toast(`${FISH_BY_ID[d.fish].name} is grown! Become him from the Map.`, 'fish'); ui.mapBadge = true; ui.refresh(); if (modeName === 'tank' && mode.id === d.id) mode.refreshFry(); }
   if (type === 'dock') { ui.toast(`${WORLD_BY_ID[DOCKS.find(k => k.id === d.id).world].name} dock unlocked`, 'bubble'); }
   if (type === 'frenzy') { audio.sfx('frenzy'); ui.toast(`Feeding Frenzy in ${WORLD_BY_ID[d.world].name}! Fry here grow twice as fast`, 'star'); }
+  if (type === 'victory' && modeName === 'pipe') {
+    // the 47th was a lost betta, found mid-pipe: a beat to enjoy it, then the victory
+    setTimeout(() => { if (modeName === 'pipe') mode.endFlare?.(true); victoryWhenFree(); }, 2200);
+  }
+  if (type === 'grandopen' && modeName === 'pipe') { mode.refreshGates?.(); ui.drawMinimapBase?.(mode); }
   if (type === 'grandopen') { audio.sfx('frenzy'); ui.toast('The Grand Maze in Neon Night is open! Beat King Claw.', 'star'); }
   if (type === 'trail') { audio.sfx('star'); ui.toast(`New bubble trail: ${d.trail[0].toUpperCase() + d.trail.slice(1)}! Pick it in the Collection`, 'bubble'); }
   if (type === 'hatch' && modeName === 'tank' && mode.id === d.id) mode.refreshFry();
@@ -363,6 +387,10 @@ window.__game = {
   unlockDock(id) { progress.unlockDock(id); return progress.s.docks; },
   _mode: () => mode, _progress: () => progress,
   peaceful(on = true) { ctx.peaceful = !!on; return ctx.peaceful; },
+  flare() { return modeName === 'pipe' ? mode.tryFlare() : false; },
+  setFlares(n) { progress.s.flares = n; ui.refresh(); return n; },
+  collect(id) { if (progress.s.collected.includes(id)) return false; progress._add(id); progress.s.fishHome[id] ||= 'cw-home'; progress._added(id); progress.save(true); return progress.s.collected.length; },
+  lost() { return Object.fromEntries(Object.values(NODES).filter(n => n.stray).map(n => [n.id, { ...n.stray, found: progress.strayFound(n.id) }])); },
   tankScreen() { return modeName === 'tank' ? mode.screenPoints() : null; },
   tankPos(v, yaw) { if (modeName === 'tank' || modeName === 'room') mode.teleportTo(v, yaw); return mode.debug(); },
   perf: () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, textures: renderer.info.memory.textures, geometries: renderer.info.memory.geometries, loaded: loadStats }),
@@ -433,6 +461,7 @@ async function boot() {
   try { await renderer.compileAsync(titleMode.scene, titleMode.camera); } catch { }
   modeName = 'title';
   for (const f of FISH.slice(0, 3)) portrait(f.id);
+  prerenderPortraits();
   ui.showHud(false);
   const ld = document.querySelector('#screen'); const ghost = ld.cloneNode(true); ghost.id = ''; document.body.appendChild(ghost);
   showTitle();

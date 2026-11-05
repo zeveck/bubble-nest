@@ -38,11 +38,11 @@ function sim({ skipEmpties = false, hitMul = 1, frac = RULES.sim.eatFraction, ve
   const W = {};
   for (const w of WORLDS) {
     const tanksOf = (mid) => Object.values(NODES)
-      .filter(n => n.type === 'tank' && n.maze === mid && n.kind !== 'home')
-      .sort((a, b) => a.depth - b.depth);
+      .filter(n => n.type === 'tank' && n.maze === mid && (n.kind !== 'home' || n.son))
+      .sort((a, b) => (a.kind === 'home') - (b.kind === 'home') || a.depth - b.depth); // the home nest (with the friend) after the maze's other tanks
     W[w.id] = {
       hit: w.simHitsPerRun, loss: w.hitLoss, base: w.feederHome, big: w.feederEmpty,
-      // nn-gm (The Grand Maze) is optional (locked behind 15 bettas, no nests): not in the sim.
+      // nn-gm (The Grand Maze) is optional (locked behind 35 bettas, no nests): not in the sim.
       mazes: w.mazes.filter(mid => !OPTIONAL.has(mid)).map(mid => ({ id: mid, bites: MAZES[mid].bites, tanks: tanksOf(mid) })),
     };
   }
@@ -80,8 +80,10 @@ function sim({ skipEmpties = false, hitMul = 1, frac = RULES.sim.eatFraction, ve
         while (wallet < tk.Z) run(wk, mi, true, `  farm ${m.id}`);
         wallet -= tk.Z; built.add(tk.id);
         events.push([t, `NEST ${tk.id} Z=${tk.Z} wallet=${wallet.toFixed(0)}`]);
-        if (tk.kind === 'lady') { pending.push({ id: tk.id, world: wk, N: tk.N, M: tk.M, stage: 'eggs', prog: 0 }); homes[wk].push([mi, 'lady']); }
-        else { empties++; homes[wk].push([mi, 'empty']); }
+        // every tank's female lays a clutch (ladies, and the friends in home and empty tanks)
+        if (tk.son) pending.push({ id: tk.id, world: wk, N: tk.N, M: tk.M, stage: 'eggs', prog: 0 });
+        if (tk.kind === 'lady') homes[wk].push([mi, 'lady']);
+        else if (tk.kind === 'empty') { empties++; homes[wk].push([mi, 'empty']); }
         run(wk, mi, false);                                 // back out through the maze
       }
     });

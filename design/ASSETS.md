@@ -44,3 +44,18 @@ Running total: $21.33 (Meshy credits used: 450). Style anchor kept as game/asset
 | music-party | game/assets/audio/music/music-party.mp3 | audiogen music | 10 s underwater dance-party jingle | 1 | $0.05 |
 
 Change 2 total: about $0.29 (budget $20).
+
+## Change 4
+
+| ID | File | Tool | Prompt (short) | Tries | Est. cost |
+|---|---|---|---|---|---|
+| music-flare-clearwater | game/assets/audio/music/music-flare-clearwater.mp3 (29.1 s) | audiogen music | sunny brass/steel-drum/marimba gallop, 150 bpm, full energy from beat 1 (take 1 came out at 120 bpm); trailing silence cut | 2 | $0.30 |
+| music-flare-copper | game/assets/audio/music/music-flare-copper.mp3 (27.8 s) | audiogen music | hot funk horns, punchy drums, clanky metal percussion, 140 bpm; both takes stopped at ~28 s, take 2 cut at the stop | 2 | $0.30 |
+| music-flare-neon | game/assets/audio/music/music-flare-neon.mp3 (30.0 s) | audiogen music | driving synthwave, bright arps, gated drums, 128 bpm, plays to the end | 1 | $0.15 |
+| flare-go | game/assets/audio/sfx/flare-go.mp3 (1.0 s) | audiogen sfx | bubbly whoosh rising into a bright power-chord hit; +6.7 dB to match flare.mp3 | 1 | $0.12 |
+| found | game/assets/audio/sfx/found.mp3 (1.5 s) | audiogen sfx | glass bubble pop then happy twinkly chime | 1 | $0.12 |
+| flare-stored | game/assets/audio/sfx/flare-stored.mp3 (0.8 s) | audiogen sfx | rising charge-up sparkle (free flare saved) | 1 | $0.12 |
+
+All instrumental, 128 kbps, starts trimmed to the first hit (ffmpeg). Takes in .gamegen/candidates/audio4/.
+
+Change 4 total: about $1.11 (budget $20).

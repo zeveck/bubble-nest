@@ -24,6 +24,8 @@
 
 7. `--change running into enemies should cause you to lose more food than it does, so it feels like more of s setback. not ridiculous, but i still don't care if i run into enemies.`
 
+8. `--change instead of 20 there should be 47 bettas to collect across the levels. the user should choose when to flare. flaring should change the music and be otherwise obvious/exciting.`
+
 ## Settings
 
 - 3D: yes (asked for in so many words)
@@ -84,3 +86,13 @@
 - [x] Design + one review round (raised to 8/12/18 + 5% of carried, cap 1.5x; King 25; economy sim models it, passes)
 - [x] Play-test: bump costs checked in all 3 worlds + King Claw, safety, -N pop at desktop and phone; 174/174 exit pairs; fast e2e to victory
 - [x] README, served on http://localhost:8000
+
+## Change 4 (47 bettas, flare on your terms, flare music; done, not yet published)
+
+- [x] Design + one review round (player, builder, art/sound; all must-fixes taken)
+- [x] Audio: 3 flare tracks, flare-go, found, flare-stored ($1.11)
+- [x] 27 new fish + friend nests + 18 lost bettas
+- [x] Free flares (stored, cap 2), longer flare
+- [x] Flare music (two buses) + visuals (banner, vignette, shockwave, gold rims, aura, camera punch, timer ring)
+- [x] Collection by world (phone tabs), text says 47, Grand Maze 35 (old saves keep it open), victory at 47 (also mid-pipe)
+- [x] Bug hunt (8 findings fixed), economy sim, 174/174 routes, all 18 lost bettas found by sweep, fast e2e to 47 + victory, README

@@ -966,3 +966,77 @@ Request (exactly as typed): "running into enemies should cause you to lose more 
 - A red "-N bites" pops up over your fish, so you feel the loss (a fade only, with Reduce motion).
 - The bite pool has room for 128 dropped bites (was 64), because drops are bigger now.
 - tools/economy.mjs models the new formula; every case passes (max reward gap 2 runs).
+
+## Change 4: 47 bettas, flare when you choose, flare music
+
+Request (exactly as typed): "instead of 20 there should be 47 bettas to collect across the levels. the user should choose when to flare. flaring should change the music and be otherwise obvious/exciting."
+
+### 47 bettas
+
+47 = your starting betta (Rust) + 28 fry + 18 lost bettas.
+
+- **28 fry: every female betta raises a clutch.** The 19 ladies as before, plus the 9 tank friends from Change 2 (Coral, Fern, Poppy, Saffron, Juniper, Marina, Tansy, Wren, Nell), who now nest too. Each clutch grows into one son you can become, exactly like a lady's.
+  - Home tanks: the friend's leaf offers "Build bubble nest with Coral: Z bites". Home nest costs sit just above the first lady of that world: cw-home Z 25 / N 25 / M 30, cp-home Z 90 / N 55 / M 65, nn-home Z 160 / N 85 / M 95.
+  - Empty tanks: building the nest claims the tank (feeder, bubble trail, as before) **and** the friend lays eggs. Each tank's N and M match its neighbouring lady tanks.
+  - Feeding Frenzy still triggers when all the *ladies'* nests in a world are built (unchanged).
+- **18 lost bettas in the pipes.** Every maze except Ripple Run (the first) and the Grand Maze hides one lost young betta, curled in a glass bubble at the spot farthest (by path) from every exit, off the beaten track. He bobs and glints; the minimap shows a small gold fish dot for him; the exit signs and the map show whether a maze's lost betta is found.
+  - Swim into him: the bubble pops (pop + newfish jingle, a sparkle burst), a toast "You found Pip! 23 / 47", he joins your collection and your school, and he lives in that world's home tank. No pause. You keep swimming as yourself; switch to him any time from the Collection ("Swim as Pip").
+  - He's found once per save. Enemies ignore him. He doesn't count as a bite.
+- **New fish (27):** names and looks in `data/fish.js`. Friends' sons: Sunset (Coral), Moss (Fern), Cherry (Poppy), Marigold (Saffron), Teal (Juniper), Tide (Marina), Lilac (Tansy), Comet (Wren), Laser (Nell). The friends' own colours change to echo their sons. Lost bettas: Pip, Bubbles, Lotus, Sunbeam, Pebble (Clearwater); Rivet, Steam, Pinch, Gauge, Cinder, Brass (Copperworks); Flicker, Disco, Jellybean, Mirror, Firefly, Ticket, Midnight (Neon Night). The same two fish bodies, recoloured in code, with fin types and patterns spread so no two look alike. No new art.
+- **Collection:** 47 cards grouped under world headings (Clearwater 15, Copperworks 15, Neon Night 17), with smaller cards on desktop (6 columns), the phone strip unchanged. Locked hints: "Coral's fry, Clearwater", "Lost in Twin Loops, Clearwater".
+- **Grand Maze:** opens at 35 bettas (was 15): about halfway through Neon Night.
+- **Victory:** at 47. "All 47 bettas" on the Full Collection screen; credits "47 bettas, 28 nests, 20 mazes". Title tagline, how-to-play, page description, manifest, README all say 47.
+- **Saves:** old saves keep everything; the new fish just appear as locked. A save that had won (20) is no longer "complete", and the victory plays again at 47.
+
+### Flare when you choose
+
+- **Brine shrimp no longer flare you on the spot.** Eating one stores a **free flare** (up to 3, kept between mazes and saved). The Flare button shows "Flare · free" with pips for each stored flare; the desktop hint says "Space: flare (free)". With none stored, it spends bites as before (6 / 10 / 15).
+- First shrimp ever: tip "Saved a free flare! Press Space (tap Flare) when you need it." A shrimp eaten at 3 stored gives +3 bites instead, with a "Flares full" toast.
+- Flare lasts 7 / 6 / 5.5 s (World 1 / 2 / 3; Grand Maze 6.5), up from 6 / 5 / 4.5, so the flare music has time to land.
+
+### Flaring is a big moment
+
+- **Music:** each pipe world gets a **flare track**: the same instruments as that world's pipe music, faster and fuller (Clearwater: bright brass-and-steel-drum gallop, 150 bpm; Copperworks: hot funk horns and drums, 140 bpm; Neon Night: driving synth arps and big drums, 128 bpm), 30 s, loopable. On flare the world music ducks to silence in 0.25 s (it keeps playing underneath) and the flare track starts with a rising stinger; when the flare ends it fades out in 0.6 s and the world music fades back in where it was.
+- **Sound:** a new "flare-go" stinger (whoosh into a power chord) replaces the plain whoosh; last-second ticks as before; a rising chomp pitch for each enemy eaten in one flare.
+- **Look:**
+  - "FLARE!" pops in large letters above the fish (0.7 s) and the screen flashes warm for a frame.
+  - A warm gold glow pulses around the screen edges in time with the flare music (CSS vignette).
+  - The camera eases 10% closer for the flare, with a short shake at the start.
+  - Your fish grows 1.2x, fins spread (as before), a bright aura and a thicker spark trail.
+  - The pipes' glass rims glow gold for the flare (lerped back at the end).
+  - A flare timer: the Flare button becomes a draining gold ring with the seconds left, blinking in the last 1.5 s.
+  - Enemies turn pale and flee (as before).
+- Reduce motion: no camera move or shake, the vignette doesn't pulse, the "FLARE!" text fades instead of popping.
+
+### Assets for this change
+
+| Asset | Tool | Est. |
+|---|---|---|
+| music-flare-clearwater / -copper / -neon (30 s loops) | audiogen music | 3 x $0.15 |
+| sfx flare-go (stinger) | audiogen sfx | $0.12 |
+| sfx found (lost betta bubble pop + twinkle) | audiogen sfx | $0.12 |
+
+About $0.75 of the $20 change budget.
+
+### Testing
+
+- Economy sim (tools/economy.mjs) includes the 9 friend nests; every case passes.
+- Each lost betta's cell is reachable (BFS) and not an enemy spawn; scripted check collects all 18.
+- Free flare: shrimp stores (cap 3), Space spends a free one first, then bites; flare music on/off (audio.state()), back to the world track after.
+- Fast e2e reaches victory at 47; all exit pairs pass.
+
+### Change 4 after review (these override the bullets above where they differ)
+
+- **Nesting:** a tank's female nests once: `canNest` = the node has a `son` and the tank has no `stage` yet. `claimed` still means "this tank is yours", so old saves with claimed empty tanks can still nest with the friend. Home-tank foam shows only once that nest exists. Every nest goes through courtship -> eggs.
+- **Coral in the start tank:** her nest prompt and leaf sign appear only once you can afford it or have been through the tube once, so the first minute still leads to the tube.
+- **Grand Maze:** opens at 35, but a save that already had it open (15+ bettas or King Claw beaten) keeps it open (`s.grandOpen`). The open toast fires from the shared add-a-fish path (nests and lost bettas), and the gate redraws if you're in nn-m7.
+- **Victory mid-pipe:** if the 47th is a lost betta, a "47 / 47!" toast plays, and the victory starts 2 s later (the flare is ended first). Entering the room also checks for an unseen victory.
+- **Free flares:** cap **2**. A shrimp at full gives one flare's worth of bites (6 / 10 / 15) with a "Flares full: +6 bites" toast and a quick nip streak. The stored count shows as pips on the Flare button on every platform. Flare presses are ignored while flared (the button shows the timer ring and isn't pressable). Only a fresh key press made after you arrive in the maze counts. Tips: shrimp = "Grab shrimp to save a free flare"; first time you see an enemy close = "Space: flare and eat them!" (touch: "Tap Flare and eat them!"); the Flare button pulses the first time a flare is stored.
+- **Lost betta spot:** the farthest cell from the exits that is also ≥ 3 path steps from any enemy spawn or shrimp. His bubble is iridescent with a gold glint every 1.5 s, always lit (visible in Neon Night darkness), and drawn over the pipes. Within 3 cells, a soft portal shimmer plays once. The pickup plays only the new "found" sound (no jingle stack). He joins the pipe school at once.
+- **Flare music:** two music buses (world and flare) feed the music volume. The flare ducks the world bus to 0 in 0.25 s (the world track keeps running and resumes where it has reached) and plays the world's flare track from the start on its own looping slot. At the end, the flare bus fades out in 0.6 s and the world bus comes back. The only stinger is the flare-go sfx. Pausing ducks both; leaving the maze mid-flare ends the flare instantly (music, vignette, rims, camera). Only the current world's flare track is preloaded on entering a pipe. `setBright` is removed.
+- **Flare look (contrast, not just colour):** the scene background and back wall darken ~30%, and the pipe rims push toward white-gold (#fff2b0 at 1.6x; in Neon Night the magenta/cyan blend halfway to gold-white). A light sweep runs along the pipes at the start. The edge glow is warm gold and pulses steadily (not beat-synced). The fish gets an aura in its own sheen colour (cool rim on warm worlds) and a thicker spark trail; no extra body scale (the fins stay inside the tube). The camera **punches** 6% in over 0.15 s and eases back within 0.5 s. "FLARE!" pops above the HUD layer near the top centre, not over the corridor. The timer ring and ticks both start at 1.5 s left. The chomp pitch rises per enemy eaten in one flare, capped at +5 semitones.
+- **Fish looks:** the 27 new fish follow the art director's spread (9-10 fish per fin shape; every dark fish has a bright rim or sheen). Locked cards are tinted with their world's colour.
+- **Collection:** world headings. On phones, three world tabs (with found counts) above the strip, opening on the current world. Portraits prerender a few per frame after boot. Locked hints cover friends' sons and lost bettas.
+- **New sfx:** flare-stored (rising sparkle).
+- **Debug hooks:** `__game.flare()`, `setFlares(n)`, `collect(id)`, `lost()`; `pipe.debug()` has `lost` and `freeFlares`; `audio.state()` reports `flare` and the bus gains.
+- **Economy sim:** models the 9 friend clutches (home nests at maze index 0).
