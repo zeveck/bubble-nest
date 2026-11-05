@@ -18,6 +18,10 @@
    - `It says Pac-Man on https://synapticnoise.com/ right now for it`
    - `The README can mention it if it outlines game features, but shouldn't spoil it up front`
 
+4. `--publish` → "We do want to keep the title links, but yes, we want all your updates."
+5. `Let's remove "While it was being built, a few more notes came in: …" these bits` (README notes block removed)
+6. `--change The enemies aren't threatening enough. They should block your passage and cause you to flinch back, so you can't just pass through them. They knock down your food amount. You can spend food to temporarily "flare" and when flared you can eat all enemies. Your line of fish should all fan out in any tank. All tanks should have a female betta. There should be a Tank Party button once you have five or more bettas that has all the bettas in the tank have a brief party. The button in the lower right is sometimes hard notice -- such commands should probably appear nearer the fish? It's too easy after entering a tank to accidentally go right back up the pipe. It's sometimes hard to get to the leaf, not sure if better controls or a bigger region or what.`
+
 ## Settings
 
 - 3D: yes (asked for in so many words)
@@ -61,3 +65,14 @@
 - [x] School follows you in pipes
 - [x] README making-of + screenshots
 - [x] Play-test, regression (174 pairs, fast e2e to victory, live check)
+
+## Change 2 (in progress)
+
+- [x] Design + one review round
+- [x] Solid enemies: block, flinch back, knock bites
+- [x] Flare on demand (spend bites); flared = eat enemies
+- [x] School fans out in tanks; a female betta in every tank
+- [x] Tank Party (5+ bettas)
+- [x] Prompts near the fish
+- [x] No accidental tube re-entry; easier leaf
+- [ ] Sounds (chomp, party), README, regression, local serve

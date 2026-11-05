@@ -116,6 +116,8 @@ const ctx = {
     else goThere();
   },
   openMap() { openMap(); },
+  flare() { if (modeName === 'pipe' && !paused) mode.tryFlare(); },
+  peaceful: false,
   pause() { pauseGame(); },
   pauseAction(a) { pauseAction(a); },
   titleAction(a) { titleAction(a); },
@@ -223,8 +225,8 @@ const TIPS = {
   start: () => isTouch() ? 'Tap where you want to swim, or hold and steer. Drag to look around.' : 'Click where you want to swim, or hold the mouse button and steer. WASD works too.',
   rise: () => isTouch() ? 'Tap the floating bites to swim up and eat them!' : 'Click the floating bites to swim up and eat them!',
   tube: () => isTouch() ? 'Tap "To the pipes", or swim up into the glowing tube' : 'Click "To the pipes", or swim up into the glowing tube',
-  pipe: () => isTouch() ? 'Swipe to turn' : 'Arrow keys or WASD to turn',
-  flare: () => 'You flared! Chase them off for bonus bites',
+  pipe: () => isTouch() ? 'Swipe to turn. Tap Flare to eat enemies.' : 'Arrow keys or WASD to turn. Space to flare and eat enemies.',
+  flare: () => 'You flared! Eat the enemies for bonus bites',
 };
 function showTip(key) {
   if (progress.s.seen.tips.includes(key)) return;
@@ -303,7 +305,7 @@ addEventListener('keydown', (e) => {
   if (e.code === 'Escape' || e.code === 'KeyP') { if (ui.isOpen && paused) resumeBack(); else pauseGame(); }
   if (e.code === 'Tab') { if (ui.isOpen && paused) resumeBack(); else openMap(); }
   if (e.code === 'KeyM') toggleMute();
-  if ((e.code === 'KeyE' || e.code === 'Enter') && !paused && ui.action && !ui.action.disabled) { ctx.doAction(ui.action.id); }
+  if ((e.code === 'KeyE' || e.code === 'Enter') && !paused && !ui.isOpen) { if (ui.action && !ui.action.disabled) ctx.doAction(ui.action.id); else if (!ui.action && modeName === 'tank' && mode.goTube && !mode.tubeLocked()) mode.goTube(); }
 });
 document.addEventListener('visibilitychange', () => { if (document.hidden) { pauseGame(); progress.save(true); audio.suspend(true); } else audio.suspend(false); });
 const portraitQ = matchMedia('(orientation: portrait) and (pointer: coarse)');
@@ -359,6 +361,7 @@ window.__game = {
   setTank(id, stage) { const t = progress.tank(id); t.claimed = true; if (stage) { t.stage = stage; t.progress = 0; } progress.save(true); return t; },
   unlockDock(id) { progress.unlockDock(id); return progress.s.docks; },
   _mode: () => mode, _progress: () => progress,
+  peaceful(on = true) { ctx.peaceful = !!on; return ctx.peaceful; },
   tankScreen() { return modeName === 'tank' ? mode.screenPoints() : null; },
   tankPos(v, yaw) { if (modeName === 'tank' || modeName === 'room') mode.teleportTo(v, yaw); return mode.debug(); },
   perf: () => ({ calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, textures: renderer.info.memory.textures, geometries: renderer.info.memory.geometries, loaded: loadStats }),

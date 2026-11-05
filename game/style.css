@@ -190,3 +190,14 @@ svg { width: 100%; height: 100%; display: block; }
 .exitlabel.tappable { border-color: #fff; background: var(--teal); color: #fff; padding: 6px 14px 6px 6px; font-weight: 600; }
 .exitlabel.tappable .ic { background: #fff !important; color: var(--teal); }
 .pip.tube { color: var(--teal); width: 40px; height: 40px; }
+.flarebtn { position: absolute; right: calc(18px + var(--safe-r)); bottom: calc(18px + var(--safe-b)); min-width: 96px; min-height: 64px; border-radius: 999px; border: 4px solid #fff; background: radial-gradient(circle at 40% 35%, #ffb070, #e8552a); color: #fff; font-weight: 600; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 6px 18px; box-shadow: 0 5px 0 #a8401a, 0 0 18px rgba(255,140,60,.55); line-height: 1.05; }
+.flarebtn .fl { font-size: 21px; } .flarebtn .cost { font-size: 13px; opacity: .95; }
+.flarebtn.off { background: #9aa8ad; box-shadow: 0 5px 0 #6a777b; }
+.flarebtn.on { animation: pulse .5s infinite; }
+.flarebtn:active { transform: translateY(3px); }
+@media (max-height: 500px) { .flarebtn { min-height: 58px; min-width: 88px; } .flarebtn .fl { font-size: 18px; } }
+.action.float { right: auto; bottom: auto; left: 0; top: 0; animation: none; min-height: 52px; font-size: 19px; padding: 8px 18px; box-shadow: 0 4px 0 #b8417a, 0 0 0 6px rgba(255,111,168,.25); display: inline-flex; align-items: center; gap: 10px; white-space: nowrap; max-width: 90vw; }
+.action kbd { font-family: inherit; font-size: 14px; background: #fff; color: #b8417a; border-radius: 6px; padding: 1px 7px; box-shadow: 0 2px 0 rgba(0,0,0,.2); }
+.action.float.disabled { box-shadow: 0 4px 0 #6a777b; }
+#btnParty.dim { opacity: .5; }
+#btnParty { color: #e8a020; }

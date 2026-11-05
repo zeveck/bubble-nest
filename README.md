@@ -12,7 +12,9 @@ You're a betta fish in a little tank with a glass tube hanging into it. Swim up 
 
 ![Your home tank](media/screenshots/tank.png)
 
-Every adventure starts in a tank. Click or tap where you want to swim, eat the bites floating on top, and swim up into the glowing tube (or press **To the pipes**). Tanks are where you build bubble nests, meet lady bettas and watch your fry grow.
+Every adventure starts in a tank. Click or tap where you want to swim, eat the bites floating on top, and swim up into the glowing tube (or press **To the pipes**). Tanks are where you build bubble nests, meet lady bettas and watch your fry grow. Every tank has a female betta living in it, your school fans out to swim around with you, and once you have five bettas you can throw a **Tank Party**.
+
+![A Tank Party](media/screenshots/party.png)
 
 ## The pipe worlds
 
@@ -28,7 +30,7 @@ Every adventure starts in a tank. Click or tap where you want to swim, eat the b
 ## How to play
 
 - **In a tank:** click (or tap) where you want to swim, or hold the button and steer. Click a bite to go and eat it; click the tube, or the **To the pipes** sign, to swim up into it. WASD works too: W swims where the camera looks, A and D turn, S backs up, Space rises and Shift dives. Right-drag (or drag a finger) to look around.
-- **In the pipes:** arrow keys or WASD to turn (or hold the mouse button). You keep swimming until you hit a wall. A brine shrimp makes you flare: enemies flee, and bumping one gives bonus bites.
+- **In the pipes:** arrow keys or WASD to turn (or hold the mouse button). You keep swimming until you hit a wall. Snails, shrimp and friends block the pipes: bump one and you flinch back and drop some bites. Press Space (or tap **Flare**) to spend a few bites and flare, and while you're flared you can eat them. Brine shrimp give a free flare.
 - **Nests and fry:** exit signs show what's beyond and what a nest costs. Swim to the floating leaf to build a nest. Empty tanks become yours (with a feeder and a new bubble trail). Lady bettas lay eggs; they hatch and grow as you eat bites anywhere, and then you can become the grown fry.
 - **Action:** E or Enter. **Map:** Tab. **Pause:** Esc or P. **Mute:** M.
 - **On a phone** (sideways): tap to swim, drag to look, the stick on the left and the arrow buttons work too, and you swipe to turn in the pipes. You can install it from your browser's menu to play full screen, even offline.
@@ -83,6 +85,23 @@ What changed:
 - **The Grand Maze:** a new 31x17 maze in Neon Night behind a gate that opens at 15 bettas, with King Claw, a big golden crayfish who chases you. Bump him three times while flaring to win the Crown bubble trail. The maze was drawn and checked by the same tool as the others.
 - **Your school:** up to four of your collected bettas follow you through the pipes along the exact path you swam (they can be turned off in Settings).
 - **Wording:** the descriptions now just say pipes, and the bubble machine's destination is kept a surprise.
+
+### The second update
+
+The next request:
+
+> The enemies aren't threatening enough. They should block your passage and cause you to flinch back, so you can't just pass through them. They knock down your food amount. You can spend food to temporarily "flare" and when flared you can eat all enemies. Your line of fish should all fan out in any tank. All tanks should have a female betta. There should be a Tank Party button once you have five or more bettas that has all the bettas in the tank have a brief party. The button in the lower right is sometimes hard notice -- such commands should probably appear nearer the fish? It's too easy after entering a tank to accidentally go right back up the pipe. It's sometimes hard to get to the leaf, not sure if better controls or a bigger region or what.
+
+What changed:
+
+- **Solid enemies:** you can't swim through them any more. Bump one and you flinch back away from it, drop a few bites, and wait for your next move; the enemy backs off the other way. A short safety window stops one bump from costing you twice.
+- **Flare on demand:** Space, F or the Flare button spends 6 / 10 / 15 bites (by world) to flare. While flared you eat any enemy you touch (+5 bites the first time, +1 after); it comes back a little later. Brine shrimp still give a free flare, and King Claw now has to be eaten three times.
+- **Tank life:** your school comes out of the tube after you and fans out around the tank, every tank has a female betta (lady tanks have their lady; homes and empty tanks get a friend such as Coral, Fern or Juniper), and with five bettas a **Tank Party** button sets everyone dancing in a ring with colour-changing lights, confetti and a party jingle (made with audiogen, along with new chomp and flinch sounds).
+- **Prompts by the fish:** "Build bubble nest", "Become …" and "Tank Party!" now float beside your fish (with the key on desktop) instead of the bottom-right corner.
+- **No accidental trips up the tube:** you arrive swimming down and away from the mouth, and the tube only takes you once you've swum clear of it and come back, or when you tap it or the **To the pipes** sign.
+- **Easier leaf:** the nest prompt appears anywhere near the leaf in the top half of the tank, and the **Nest spot** sign can be tapped to swim straight under it.
+
+A review agent checked the plan first (and caught a bounce that could ping-pong you back into a chasing enemy, and a floating "Back to the pipes" that would have brought the accidental exits back). Every maze crossing, a run with enemies on, and the full playthrough were tested again.
 
 The design notes, reviews and asset log are in [`design/`](design/), and the maze layouts and their checker in [`tools/`](tools/).
 

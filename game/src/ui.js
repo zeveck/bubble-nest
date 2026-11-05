@@ -20,11 +20,12 @@ export class UI {
       <div class="hud" id="hud" hidden>
         <div class="hud-tl"><div class="chip fishchip" id="fishchip"><span class="portrait" id="chipPortrait"></span><span class="flare-ring" id="flareRing"></span></div><div class="chip bites" id="bites"><span class="ic">${ICON.bite}</span><b id="biteN">0</b></div></div>
         <div class="hud-tc" id="status"></div>
-        <div class="hud-tr"><button class="round" id="btnMap" aria-label="Map">${ICON.map}<span class="badge" id="mapBadge" hidden></span></button><button class="round" id="btnMute" aria-label="Sound on or off">${ICON.sound}</button><button class="round" id="btnPause" aria-label="Pause">${ICON.pause}</button></div>
+        <div class="hud-tr"><button class="round" id="btnMap" aria-label="Map">${ICON.map}<span class="badge" id="mapBadge" hidden></span></button><button class="round" id="btnParty" aria-label="Tank Party" title="Tank Party" hidden>${ICON.star}</button><button class="round" id="btnMute" aria-label="Sound on or off">${ICON.sound}</button><button class="round" id="btnPause" aria-label="Pause">${ICON.pause}</button></div>
         <canvas id="minimap" class="minimap" hidden></canvas>
         <div id="labels" class="labels"></div>
         <div id="pips" class="labels"></div>
         <button class="action" id="action" hidden></button>
+        <button class="flarebtn" id="btnFlare" hidden><span class="fl">Flare</span><span class="cost" id="flareCost"></span></button>
         <div class="risedive" id="risedive" hidden><button class="round big" id="btnRise" aria-label="Rise">${ICON.up}</button><button class="round big" id="btnDive" aria-label="Dive">${ICON.down}</button></div>
         <div class="tip" id="tip" hidden></div>
       </div>
@@ -35,6 +36,8 @@ export class UI {
     $('#btnMap').onclick = () => { audio.sfx('ui-click'); this.ctx.openMap(); };
     $('#btnPause').onclick = () => { audio.sfx('ui-click'); this.ctx.pause(); };
     $('#btnMute').onclick = () => { this.ctx.toggleMute(); };
+    $('#btnParty').onclick = () => { this.ctx.doAction('party'); };
+    $('#btnFlare').addEventListener('pointerdown', (e) => { e.preventDefault(); e.stopPropagation(); this.ctx.flare(); });
     this.root.addEventListener('click', (e) => { const b = e.target.closest('button'); if (b) setTimeout(() => b.blur(), 0); });
     const act = $('#action');
     act.onclick = () => { if (this.action && !this.action.disabled) { audio.sfx('ui-click'); this.ctx.doAction(this.action.id); } else if (this.action?.disabled) audio.sfx('deny'); };
@@ -55,6 +58,8 @@ export class UI {
     this.hud.dataset.mode = mode;
     $('#risedive').hidden = !(isTouch() && (mode === 'tank' || mode === 'room'));
     $('#minimap').hidden = !(mode === 'pipe' && progress.s.settings.minimap);
+    $('#btnFlare').hidden = mode !== 'pipe';
+    $('#btnParty').hidden = !(mode === 'tank' && progress.s.collected.length >= 5);
     this.labels.innerHTML = ''; this.pips.innerHTML = ''; this.labelEls = {};
     this.refresh();
   }
@@ -80,7 +85,9 @@ export class UI {
     if (key === this.actionKey) return;
     this.actionKey = key; this.action = a;
     if (!a) { el.hidden = true; return; }
-    el.hidden = false; el.textContent = a.label; el.classList.toggle('disabled', !!a.disabled);
+    el.hidden = false; el.classList.toggle('disabled', !!a.disabled);
+    el.innerHTML = esc(a.label) + (isTouch() ? '' : '<kbd>E</kbd>');
+    el.classList.toggle('float', this.mode === 'tank' || this.mode === 'room');
     el.dataset.id = a.id;
   }
   flare(frac) { const r = $('#flareRing'); r.style.opacity = frac > 0 ? 1 : 0; r.style.setProperty('--f', frac); }
@@ -163,6 +170,8 @@ export class UI {
   }
   pipeUpdate(pipe) {
     this.pipeInfo(pipe);
+    { const cost = pipe.flareCost(), fb = $('#btnFlare'); const can = progress.s.bites >= cost && pipe.flareT <= 0;
+      const k = cost + '|' + can + '|' + (pipe.flareT > 0); if (fb.dataset.k !== k) { fb.dataset.k = k; $('#flareCost').textContent = pipe.flareT > 0 ? 'Flaring!' : (isTouch() ? `${cost} bites` : `Space · ${cost} bites`); fb.classList.toggle('off', !can); fb.classList.toggle('on', pipe.flareT > 0); } }
     this.flare(pipe.flareT > 0 ? pipe.flareT / (pipe.wcfg.flareTime || 6) : 0);
     const node = NODES[pipe.id];
     const scr = pipe.exitScreen();
@@ -233,10 +242,27 @@ export class UI {
     g.fillStyle = '#ff4a4a'; g.strokeStyle = '#fff'; g.lineWidth = s * 0.25; g.beginPath(); g.arc(fx * s, fy * s, s * 0.6, 0, 7); g.fill(); g.stroke();
   }
 
+  placeAction(pt) {
+    const el = $('#action'); if (el.hidden || !el.classList.contains('float') || !pt) return;
+    if (pt.hide || !pt.ok) { el.style.visibility = 'hidden'; return; }
+    el.style.visibility = '';
+    const W = innerWidth, H = innerHeight, w = el.offsetWidth || 200, h = el.offsetHeight || 56;
+    const top = H < 500 ? 70 : 84;
+    // beside the fish (right, or left near the right edge), a little above, so it never covers where you steer
+    const side = pt.x + 70 + w > W - 10 ? -1 : 1;
+    let x = pt.x + side * (70 + w / 2), y = pt.y - 50;
+    x = Math.max(w / 2 + 10, Math.min(W - w / 2 - 10, x)); y = Math.max(top + h / 2, Math.min(H - h / 2 - 90, y));
+    const cur = this.actPos || { x, y };
+    this.actPos = { x: cur.x + (x - cur.x) * 0.2, y: cur.y + (y - cur.y) * 0.2 };
+    el.style.transform = `translate(${Math.round(this.actPos.x)}px, ${Math.round(this.actPos.y)}px) translate(-50%, -50%)`;
+  }
   tankUpdate(tank) {
     const W = innerWidth, H = innerHeight;
+    this.placeAction(tank.promptPoint());
+    const pb = $('#btnParty'); const showP = progress.s.collected.length >= 5; if (pb.hidden === showP) pb.hidden = !showP;
+    pb.classList.toggle('dim', !tank.canParty());
     const marks = [
-      { id: 'leaf', s: tank.leafScreen(), html: `<span class="ic k-lady">${ICON.bubble}</span><span class="tx">Nest spot</span>`, cls: 'gold' },
+      { id: 'leaf', s: tank.leafScreen(), html: `<span class="ic k-lady">${ICON.bubble}</span><span class="tx">Nest spot</span>`, cls: 'gold', tap: () => tank.goLeaf() },
       { id: 'tube', s: tank.tubeScreen(), html: `<span class="ic k-maze">${ICON.up}</span><span class="tx">To the pipes</span>`, cls: 'tube', tap: () => tank.goTube() },
     ];
     for (const m of marks) {
@@ -258,6 +284,7 @@ export class UI {
     }
   }
   roomUpdate(room) {
+    this.placeAction(room.promptPoint());
     const scr = room.dockScreen();
     for (const d of scr) {
       let el = this.labelEls[d.id];
@@ -330,8 +357,8 @@ export class UI {
     const t = isTouch();
     const s = this.open(`<div class="panel wide"><h2>How to play</h2>
       <div class="cols">
-        <section><h3>${ICON.fish} Tanks</h3><p>${t ? 'Push the stick to swim. Drag on the right to look around. Use the arrow buttons to rise and dive.' : 'Hold the left mouse button to swim toward the pointer, or use WASD. Space rises, Shift dives. Right-drag to look around.'}</p><p>Eat the bites on top, then swim up into the tube.</p></section>
-        <section><h3>${ICON.arrows} Pipes</h3><p>${t ? 'Swipe to turn.' : 'Arrow keys or WASD to turn.'} Munch every bite for a star, without a bump for two. Enemies knock bites loose; grab a brine shrimp to flare and chase them off!</p></section>
+        <section><h3>${ICON.fish} Tanks</h3><p>${t ? 'Tap where you want to swim, or hold and steer. Drag to look around.' : 'Click where you want to swim, or hold and steer. WASD, Space and Shift work too. Right-drag to look around.'} Eat the bites on top, then swim up into the tube. With 5 bettas, throw a Tank Party!</p></section>
+        <section><h3>${ICON.arrows} Pipes</h3><p>${t ? 'Swipe to turn.' : 'Arrow keys or WASD to turn.'} Munch every bite for a star, without a bump for two. Enemies block the pipes: bump one and you flinch back and lose bites. ${t ? 'Tap Flare' : 'Press Space'} to spend bites and flare, and while flared you can eat them!</p></section>
         <section><h3>${ICON.heart} Nests and fry</h3><p>Swim to the floating leaf to build a bubble nest. Ladies lay eggs, which hatch and grow as you eat bites anywhere. Become each grown fry to collect all 20.</p></section>
         <section><h3>${ICON.star} Frenzy and worlds</h3><p>Nest with every lady in a world and fry there grow twice as fast. Find the bubble machine at the end of a world to reach the next one.</p></section>
       </div><div class="row"><button class="btn primary" data-a="back">Back</button></div></div>`);

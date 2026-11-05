@@ -320,6 +320,7 @@ export class RoomMode {
     this.camera.lookAt(this.victory ? new THREE.Vector3(GT.x, GT.y + 0.5, GT.z) : this.p);
   }
 
+  promptPoint() { const q = this.p.clone().add(new THREE.Vector3(0, 0.5, 0)).project(this.camera); return { x: (q.x + 1) / 2 * innerWidth, y: (1 - q.y) / 2 * innerHeight, ok: q.z < 1 }; }
   dockScreen() {
     return this.docks.map(k => { const v = k.center.clone().add(new THREE.Vector3(0, 0.7, 0)).project(this.camera); return { id: k.d.id, world: k.d.world, unlocked: k.unlocked, x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight, on: v.z < 1 && Math.abs(v.x) < 1.1 && Math.abs(v.y) < 1.1, dist: k.center.distanceTo(this.p) }; });
   }

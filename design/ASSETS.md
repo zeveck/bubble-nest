@@ -34,3 +34,13 @@ Running total: $20.96 (Meshy credits used: 450)
 Running total: $21.33 (Meshy credits used: 450). Style anchor kept as game/assets/style-anchor.jpg (768 px).
 
 **Final total: about $21.33 of $50** (images ~$1.95, Meshy 450 credits = $9.00, audio ~$9.92, concept/icon images ~$0.46). Meshy credits left: ~2,047.
+
+### Change 2
+
+| ID | File | Tool | Prompt (short) | Tries | Est. cost |
+|---|---|---|---|---|---|
+| chomp | game/assets/audio/sfx/chomp.mp3 | audiogen sfx | cartoon underwater chomp (eating an enemy) | 1 | $0.12 |
+| flinch | game/assets/audio/sfx/flinch.mp3 | audiogen sfx | cartoon boing bounce (flinching off an enemy) | 1 | $0.12 |
+| music-party | game/assets/audio/music/music-party.mp3 | audiogen music | 10 s underwater dance-party jingle | 1 | $0.05 |
+
+Change 2 total: about $0.29 (budget $20).

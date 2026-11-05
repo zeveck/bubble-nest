@@ -42,3 +42,14 @@ One combined Player/Builder reviewer, 8 findings (4 must-fix). All applied:
 - Walls: the camera may look in from just outside the side and front glass (up to 2.2 / 2.5 u), never through the back poster.
 - King Claw: after a hit he goes home and rests 3 s; he flees while you flare; one bump per flare; Grand Maze brine shrimp respawn after 20 s; bumps reset when you leave; visual 1.45x, hitbox unchanged; `debug().boss`.
 - School: path history records breaks at wraps and portals (followers snap with a ring pop), is prefilled from the entry tube, and is disposed on exit.
+
+## Change 2 review (solid enemies, flare on demand, tank life, prompts)
+
+One combined Player/Builder reviewer, 8 findings (3 must-fix). Applied:
+- Flinch separation: you're pushed away from the enemy (forward if it hit you from behind), it backs off the other way for 1 s; dropped bites land only on your side; jellies stay on their loops.
+- After a flinch you stop and wait for input (no drifting out an exit or portal); the bounce eases visually instead of snapping.
+- Prompt placement: beside the fish (not on it), smoothed, hidden during the party and close-up cameras or when the fish is off screen; "Back to the pipes" is no longer a floating prompt (the sign, tube tap and E do it), which also lets "Tank Party!" show.
+- Flare farming: +5 for the first time you eat each enemy per visit, +1 after.
+- Solid states written down: grey (home/rest), eaten and respawning enemies are harmless; respawn waits until you're 2+ cells away.
+- Crowding: only you and the female cast shadows; party particles capped by the shared pool.
+- The friendly females are companions (not breeding); called out in the report in case breeding everywhere was meant.

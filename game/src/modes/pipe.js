@@ -97,7 +97,7 @@ export class PipeMode {
     this.queued = null; this.queuedJunctions = 0; this.lastDirSeen = null;
     this.facing = (this.P.dir === 'L') ? -1 : 1;
     this.yawVis = this.facing * Math.PI / 2; this.pitchVis = 0;
-    this.safeT = 1.5; this.dazeT = 0; this.flareT = 0; this.hits = 0;
+    this.safeT = 1.5; this.dazeT = 0; this.flareT = 0; this.hits = 0; this.flinchCool = 0; this.recoilT = 0; this.waitInput = false;
     this.temps = []; this.leaving = false; this.portalLock = null;
     this.streak = 0; this.streakT = 0; this.trailT = 0;
     this.buildEnemies();
@@ -400,6 +400,7 @@ export class PipeMode {
     if (held && held !== P.dir) { this.queued = held; this.queuedJunctions = 0; }
     if (input.pointer.down && !isTouch()) this.mouseSteer();
     if (this.dazeT > 0) return;
+    if (this.waitInput) { if (this.queued || input.heldDir()) { this.waitInput = false; P.moving = true; if (!this.queued) this.queued = input.heldDir(); } else return; }
     // reverse at once
     if (this.queued && P.dir && this.queued === OPP[P.dir] && P.moving) {
       const [dx, dy] = DV[P.dir];
@@ -464,13 +465,10 @@ export class PipeMode {
       const s = this.shrimps[i];
       if (s.alive && s.x === P.x && s.y === P.y) {
         s.alive = false; this.shrimpMeshes[i].visible = false;
-        this.flareT = this.id === 'nn-gm' ? 6 : (this.wcfg.flareTime ?? 6); this.flareTicked = false; this.kingBumpedFlare = false;
         if (this.id === 'nn-gm') s.respawnAt = this.t + 20;
-        audio.sfx('gulp'); audio.sfx('flare'); audio.setBright(true);
+        audio.sfx('gulp');
         progress.eat(1, this.world);
-        this.fx.burst(...this.fishPos().toArray(), 18, { shape: 'spark', color: 0xffb070, size: 0.5, speed: 3, life: 0.6, flat: true });
-        for (const e of this.enemies) if (e.state === 'roam' || e.state === 'dart') { e.state = 'scared'; e.dir = e.dir ? OPP[e.dir] : e.dir; e.f = e.f ? 1 - e.f : 0; if (e.f) { const [dx, dy] = DV[OPP[e.dir]]; e.x += dx; e.y += dy; } }
-        this.ctx.tip('flare');
+        this.startFlare();
       }
     }
     for (const t of this.temps) if (t.alive && t.x === P.x && t.y === P.y) { t.alive = false; progress.eat(1, this.world, { counts: false }); audio.sfx('regrab', { vol: 0.6 }); this.ctx.biteBump(); }
@@ -549,7 +547,7 @@ export class PipeMode {
     const noRev = opts.filter(d => d !== OPP[e.dir]);
     const pool = noRev.length ? noRev : opts;
     const P = this.P;
-    if (e.state === 'scared') {
+    if (e.state === 'scared' || e.backoffT > 0) {
       let best = pool[0], bd = -1;
       for (const d of pool) { const nx = e.x + DV[d][0], ny = e.y + DV[d][1]; const dd = Math.abs(nx - P.x) + Math.abs(ny - P.y); if (dd > bd) { bd = dd; best = d; } }
       return best;
@@ -575,6 +573,9 @@ export class PipeMode {
     const P = this.P;
     for (const e of this.enemies) {
       if (e.state === 'gone') continue;
+      if (e.backoffT > 0) e.backoffT -= dt;
+      if (e.ghostT > 0) { e.ghostT -= dt; e.obj.traverse(o => { if (o.material) { o.material.transparent = true; o.material.opacity = e.ghostT > 0 ? 0.35 + 0.3 * Math.sin(this.t * 20) : 1; } }); }
+      if (e.state === 'eaten') { if (this.t > e.eatenUntil && Math.abs(e.home.x - this.P.x) + Math.abs(e.home.y - this.P.y) > 2) { e.state = 'roam'; e.x = e.home.x; e.y = e.home.y; e.f = 0; e.dir = this.openDirs(e.x, e.y, 'enemy')[0] || null; e.obj.visible = true; e.ghostT = 1; this.placeEnemy(e, dt); } continue; }
       e.stateT += dt;
       if (e.state === 'rest') { e.restT -= dt; if (e.restT <= 0) e.state = 'roam'; this.placeEnemy(e, dt); continue; }
       if (e.state === 'scared' && this.flareT <= 0) e.state = 'roam';
@@ -642,35 +643,82 @@ export class PipeMode {
     }
   }
 
+  flareCost() { return this.id === 'nn-gm' ? 15 : [6, 10, 15][['cw', 'cp', 'nn'].indexOf(this.world)] ?? 6; }
+  startFlare() {
+    this.flareT = this.id === 'nn-gm' ? 6 : (this.wcfg.flareTime ?? 6); this.flareTicked = false; this.kingBumpedFlare = false;
+    audio.sfx('flare'); audio.setBright(true);
+    this.fx.burst(...this.fishPos().toArray(), 18, { shape: 'spark', color: 0xffb070, size: 0.5, speed: 3, life: 0.6, flat: true });
+    for (const e of this.enemies) if (e.state === 'roam' || e.state === 'dart' || e.state === 'tell') { e.state = 'scared'; if (e.dir) { e.dir = OPP[e.dir]; if (e.f) { const [dx, dy] = DV[OPP[e.dir]]; e.x += dx; e.y += dy; e.f = 1 - e.f; } } }
+    this.ctx.tip('flare');
+  }
+  // spend bites to flare (Space / F / the Flare button)
+  tryFlare() {
+    if (this.leaving || this.flareT > 0) return false;
+    const cost = this.flareCost();
+    if (progress.s.bites < cost) { audio.sfx('deny'); this.ctx.toast(`Flaring costs ${cost} bites: you need ${cost - progress.s.bites} more.`, 'bite'); return false; }
+    progress.lose(cost); this.ctx.biteBump(-cost);
+    this.startFlare();
+    return true;
+  }
   checkHits() {
-    if (this.leaving) return;
+    if (this.leaving || this.ctx.peaceful) return;
+    if (this.flinchCool > 0) return;
     const me = this.fishPos();
     for (const e of this.enemies) {
-      if (e.state === 'home' || e.state === 'rest' || e.state === 'gone') continue;
+      if (e.state === 'home' || e.state === 'rest' || e.state === 'gone' || e.state === 'eaten' || e.ghostT > 0) continue;
       const d = this.epos(e).distanceTo(me) / CELL;
-      const reach = e.type === 'jelly' && e.pulsing ? 1.0 : 0.5;
+      const reach = e.type === 'jelly' && e.pulsing ? 1.0 : 0.6;
       if (d >= reach) continue;
-      if (e.type === 'king' && e.state === 'scared') {
-        if (this.kingBumpedFlare) continue;
-        this.kingBumpedFlare = true; this.kingHits++;
-        e.state = 'home'; audio.sfx('shoo'); audio.sfx('bonk'); this.ctx.shake(0.3);
-        this.fx.burst(me.x, me.y, 0.3, 24, { shape: 'star', color: 0xffd040, size: 0.5, speed: 3.5, life: 0.8, flat: true });
-        if (this.kingHits >= 3) this.beatKing(e);
-        else this.ctx.toast(`King Claw is stunned! ${3 - this.kingHits} more ${3 - this.kingHits === 1 ? 'bump' : 'bumps'} while flaring.`, 'star');
-        continue;
-      }
-      if (e.state === 'gone') continue;
-      if (e.state === 'scared') { // bump it home
-        e.state = 'home'; audio.sfx('shoo'); progress.eat(5, this.world); this.ctx.biteBump(5);
-        this.fx.burst(me.x, me.y, 0.3, 14, { shape: 'star', color: 0xffe080, size: 0.45, speed: 3, life: 0.7, flat: true });
-        audio.sfx('wrap', { vol: 0.4 });
-        continue;
-      }
-      if (this.safeT > 0 || this.dazeT > 0) continue;
-      this.onHit(e.type === 'king' ? 10 : null);
-      if (e.type === 'king') e.state = 'home';
+      if (this.flareT > 0) { if (this.eatEnemy(e, me)) continue; }
+      this.flinch(e);
       break;
     }
+  }
+  eatEnemy(e, me) {
+    if (e.type === 'king') {
+      if (this.kingBumpedFlare) return false; // one bite of the king per flare
+      this.kingBumpedFlare = true; this.kingHits++;
+      e.state = 'home'; audio.sfx('chomp'); audio.sfx('bonk'); this.ctx.shake(0.3);
+      this.fx.burst(me.x, me.y, 0.3, 24, { shape: 'star', color: 0xffd040, size: 0.5, speed: 3.5, life: 0.8, flat: true });
+      if (this.kingHits >= 3) this.beatKing(e);
+      else this.ctx.toast(`You chomped King Claw! ${3 - this.kingHits} more ${3 - this.kingHits === 1 ? 'chomp' : 'chomps'} while flaring.`, 'star');
+      return true;
+    }
+    e.state = 'eaten'; e.eatenUntil = this.t + 8; e.obj.visible = false;
+    const gain = e.eatenOnce ? 1 : 5; e.eatenOnce = true;
+    audio.sfx('chomp'); progress.eat(gain, this.world); this.ctx.biteBump(gain);
+    const p = this.epos(e);
+    this.fx.burst(p.x, p.y, 0.3, 18, { shape: 'star', color: 0xffe080, size: 0.45, speed: 3, life: 0.7, flat: true });
+    this.fx.burst(p.x, p.y, 0.3, 10, { shape: 'bubble', color: 0xffffff, size: 0.35, speed: 2, life: 0.8, flat: true });
+    return true;
+  }
+  // enemies are solid: you flinch back, and lose bites unless you're in the safety after a hit
+  flinch(e) {
+    const P = this.P;
+    const me = this.fishPos(), ep = this.epos(e);
+    const away = me.clone().sub(ep); // from the enemy toward you
+    if (P.dir) {
+      const [dx, dy] = DV[P.dir];
+      const dot = dx * away.x - dy * away.y; // >0: the enemy is behind you
+      if (dot < 0) { // the enemy is ahead: turn back, keeping your position continuous
+        if (P.f > 0.001) { P.x += dx; P.y += dy; P.f = 1 - P.f; }
+        P.dir = OPP[P.dir];
+      }
+    }
+    this.queued = null; this.waitInput = true; P.moving = false;
+    // the enemy backs off the other way for a moment (jellies stay on their rails)
+    if (e.type !== 'jelly' && e.dir) {
+      const [ex, ey] = DV[e.dir]; const edot = ex * -away.x - ey * -away.y; // >0: the enemy is moving away already
+      if (edot < 0 && e.f > 0.001) { e.x += ex; e.y += ey; e.f = 1 - e.f; e.dir = OPP[e.dir]; }
+      else if (edot < 0) e.dir = OPP[e.dir];
+    }
+    e.backoffT = 1.0;
+    if (e.state === 'dart' || e.state === 'tell') { e.state = 'roam'; e.dartCool = 2; }
+    this.dazeT = 0.35; this.flinchCool = 0.3; this.recoilT = 0.35;
+    this.recoilDir = away.setZ(0).normalize();
+    audio.sfx('flinch');
+    if (this.safeT <= 0) { this.onHit(e.type === 'king' ? 10 : null); if (e.type === 'king') { e.state = 'home'; } }
+    else this.ctx.shake(0.08);
   }
   beatKing(e) {
     e.state = 'gone'; e.obj.visible = false;
@@ -689,13 +737,13 @@ export class PipeMode {
     this.hits++; progress.s.hits++;
     const loss = lossOverride ?? this.wcfg.hitLoss ?? 3;
     const lost = progress.lose(loss);
-    this.dazeT = 0.4; this.safeT = 1.9;
+    this.safeT = 1.2;
     audio.sfx('bonk'); if (lost) audio.sfx('scatter', { vol: 0.7 });
     this.ctx.shake(0.25); this.ctx.biteBump(-lost);
     // half of the lost bites drop along the corridor
     const back = Math.ceil(lost / 2);
     const P = this.P; const spots = [];
-    for (const d of [P.dir, OPP[P.dir]]) {
+    for (const d of [P.dir]) {
       if (!d) continue;
       let x = P.x, y = P.y;
       for (let i = 0; i < 3; i++) { if (this.canMove(x, y, d, 'enemy') !== 'ok') break; x += DV[d][0]; y += DV[d][1]; if (i >= 1) spots.push({ x, y }); }
@@ -712,6 +760,9 @@ export class PipeMode {
     this.t += dt;
     if (this.safeT > 0) this.safeT -= dt;
     if (this.dazeT > 0) this.dazeT -= dt;
+    if (this.flinchCool > 0) this.flinchCool -= dt;
+    if (this.recoilT > 0) this.recoilT -= dt;
+    if (input.enabled && input.wasPressed('Space', 'KeyF')) this.tryFlare();
     if (this.flareT > 0) {
       this.flareT -= dt;
       if (this.flareT < 1 && !this.flareTicked) { this.flareTicked = true; audio.sfx('flare-end'); }
@@ -766,7 +817,7 @@ export class PipeMode {
     const k = Math.min(1, dt / 0.06);
     this.yawVis += (yawT - this.yawVis) * k; this.pitchVis += (pitchT - this.pitchVis) * k;
     let spin = 0;
-    if (this.dazeT > 0) spin = (0.4 - this.dazeT) / 0.4 * Math.PI * 2;
+    if (this.recoilT > 0) { spin = Math.sin(this.recoilT * 45) * 0.35; if (this.recoilDir) { const k = Math.sin(this.recoilT / 0.35 * Math.PI) * 0.35; g.position.x += this.recoilDir.x * k; g.position.y += this.recoilDir.y * k; } }
     g.rotation.set(0, 0, 0); g.rotateY(this.yawVis + spin); g.rotateX(-this.pitchVis);
     g.visible = !(this.safeT > 0 && this.safeT < 1.5 && Math.floor(this.t * 12) % 2 === 0 && this.dazeT <= 0);
     this.player.swim = P.moving ? 0.8 : 0.3;

@@ -1,7 +1,7 @@
 // Tank mode: free 3D swimming in a small aquarium.
 import * as THREE from 'three';
 import { NODES } from '../data/worlds.js';
-import { FISH_BY_ID, LADIES } from '../data/fish.js';
+import { FISH_BY_ID, LADIES, FRIENDS } from '../data/fish.js';
 import { Fish, getBody } from '../fishmodel.js';
 import { modelMesh, texture } from '../assets.js';
 import { FX, trailShape } from '../fx.js';
@@ -33,6 +33,7 @@ class Swimmer { // NPC fish wandering
     this.target.set(X0 + 1.5 + r() * (W - 3), Y0 + 1.2 + r() * (H - 3), Z0 + 1 + r() * (D - 2));
   }
   update(dt, override) {
+    if (this.delay > 0) { this.delay -= dt; if (this.delay <= 0) this.fish.group.visible = true; else return; }
     this.t -= dt;
     const tg = override || this.target;
     if (!override && (this.t <= 0 || this.p.distanceTo(tg) < 0.6)) { this.pick(); this.t = 3 + this.rand() * 4; }
@@ -74,8 +75,8 @@ export class TankMode {
     this.uTime = { value: 0 };
     this.t = 0;
     // lights
-    scene.add(new THREE.HemisphereLight(st.amb, 0x2a4a50, 1.4));
-    const sun = new THREE.DirectionalLight(st.light, 2.0);
+    this.hemi = new THREE.HemisphereLight(st.amb, 0x2a4a50, 1.4); scene.add(this.hemi); this.hemiColor = st.amb; this.sunColor = st.light;
+    const sun = this.sun = new THREE.DirectionalLight(st.light, 2.0);
     sun.position.set(-3, 12, 5); sun.target.position.set(0, 0, 0);
     sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024); sun.shadow.bias = -0.0008; sun.shadow.normalBias = 0.03;
     Object.assign(sun.shadow.camera, { left: -8, right: 8, top: 6, bottom: -6, near: 1, far: 30 });
@@ -96,14 +97,14 @@ export class TankMode {
     this.p = new THREE.Vector3(); this.v = new THREE.Vector3();
     this.yaw = -Math.PI / 2; this.pitch = 0; this.pushT = 0;
     if (from === 'start') { this.p.set(-5.0, 2.2, 0.9); this.yaw = Math.atan2(FEED.x - 0.5 + 3.5, FEED.z - 0.8); this.pitch = 0.15; }
-    else if (from === 'pipe' || from === 'title') { this.p.set(MOUTH.x - 0.6, MOUTH.y - 1.4, 0.3); this.yaw = -Math.PI / 2 - 0.3; this.pitch = -0.35; }
+    else if (from === 'pipe' || from === 'title') { this.p.set(MOUTH.x, MOUTH.y - 0.7, 0); this.yaw = -Math.PI / 2 - 0.4; this.pitch = -0.7; this.arriving = MOUTH.clone().add(new THREE.Vector3(-2.0, -2.4, 0.9)); }
     else { this.p.set(0, 0, 1); this.yaw = -Math.PI / 2; }
     if (demo) this.p.set(-2, 0, 0);
     if (from === 'start') this.yaw = Math.atan2(FEED.x - this.p.x, FEED.z - this.p.z);
     this.camYaw = this.yaw; this.camPitch = 0.3; this.lookAtV = this.p.clone();
     this.waypoint = null; this.holdTarget = null; this.happyT = 0; this.celebrateT = 0;
     this.camPos = new THREE.Vector3();
-    this.auto = null; this.actionLock = 0; this.enteringTube = false; this.tubeCool = 1.2;
+    this.auto = null; this.actionLock = 0; this.enteringTube = false; this.tubeCool = 1.2; this.leftMouth = from !== 'pipe' && from !== 'title'; this.partyT = 0; this.partyCool = 0;
     this.firstVisit = from === 'start';
     this.streak = 0; this.streakT = 0; this.trailT = 0;
     // feeder
@@ -213,12 +214,34 @@ export class TankMode {
       this.lady = new Swimmer(f, rng(id + 'lady'), 0.9);
       this.npcs.push(this.lady);
     }
+    else if (FRIENDS[id]) {
+      const f = new Fish(getBody('female'), FRIENDS[id], { shadow: true });
+      f.group.scale.setScalar(0.85); sc.add(f.group);
+      this.friend = new Swimmer(f, rng(id + 'friend'), 0.9);
+      this.npcs.push(this.friend);
+    }
     // residents
     for (const [fid, home] of Object.entries(progress.s.fishHome)) {
       if (home !== id || fid === progress.s.fish) continue;
       const f = new Fish(getBody('male'), FISH_BY_ID[fid], { shadow: true });
       sc.add(f.group);
       this.npcs.push(new Swimmer(f, rng(id + fid), 1.0));
+    }
+    // your school: up to 4 collected fish come out of the tube after you and fan out
+    this.school = [];
+    if (!this.demo && progress.s.settings.school !== false) {
+      const here = new Set(Object.entries(progress.s.fishHome).filter(([, h]) => h === id).map(([f]) => f));
+      const ids = progress.s.collected.filter(f => f !== progress.s.fish && !here.has(f)).slice(-4).reverse();
+      ids.forEach((fid, i) => {
+        const f = new Fish(getBody('male'), FISH_BY_ID[fid], { shadow: false });
+        sc.add(f.group);
+        const sw = new Swimmer(f, rng(id + 'school' + fid), 1.2);
+        sw.p.set(MOUTH.x, MOUTH.y - 0.4 - i * 0.15, 0);
+        const a = -0.6 + i * 0.55;   // fan out: spread around the tank
+        sw.target.set(MOUTH.x - 2.5 - i * 1.3, 1.6 - i * 0.9, Math.sin(a) * 2.6); sw.t = 2.5 + i * 0.4;
+        f.group.visible = false; sw.delay = 0.35 + i * 0.3;
+        this.school.push(sw); this.npcs.push(sw);
+      });
     }
     // fry cloud / grown young fish
     this.fry = null; this.young = null;
@@ -399,7 +422,11 @@ export class TankMode {
     this.t += dt; this.uTime.value = this.t;
     this.keyTurn = Math.max(0, (this.keyTurn || 0) - dt);
     let c;
+    if (!this.leftMouth && this.p.distanceTo(MOUTH) > 2.2) this.leftMouth = true;
+    if (this.partyCool > 0) this.partyCool -= dt;
     if (this.demo) c = this.demoControls(dt);
+    else if (this.partyT > 0) { this.partyT -= dt; const a = this.t * 1.3; c = { want: new THREE.Vector3(Math.cos(a) * 2.8, 0.6 + Math.sin(a * 2) * 0.6, 0.6 + Math.sin(a) * 1.5).sub(this.p), speed: 0.9, rise: 0 }; if (this.partyT <= 0) this.endParty(); }
+    else if (this.arriving) { c = { want: this.arriving.clone().sub(this.p), speed: 0.8, rise: 0 }; if (this.p.distanceTo(this.arriving) < 0.5 || input.holding() || input.tapAt || input.stick.active || input.held('KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight')) this.arriving = null; }
     else if (this.auto) {
       if (input.held('KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight') || input.stick.active || input.holding() || input.tapAt) { this.auto = null; c = this.controls(dt); }
       else c = { want: this.auto.clone().sub(this.p), speed: 1, rise: 0 };
@@ -424,7 +451,7 @@ export class TankMode {
     if (this.backUp) { tmp.set(-fx * 1.6, -fy * 1.6 + c.rise * 2.2, -fz * 1.6); this.backUp = false; }
     // tube: gentle pull when close and heading up
     const toMouth = tmp2.copy(MOUTH).add(new THREE.Vector3(0, 0.4, 0)).sub(this.p);
-    if (!this.demo && !this.tubeLocked() && toMouth.length() < 2.2 && this.p.y < MOUTH.y && (this.wantTube || this.auto || (this.v.y > 0.3 && this.v.clone().normalize().dot(toMouth.clone().normalize()) > 0.6))) tmp.addScaledVector(toMouth.normalize(), 2.5);
+    if (!this.demo && !this.tubeLocked() && (this.leftMouth || this.wantTube) && toMouth.length() < 2.2 && this.p.y < MOUTH.y && (this.wantTube || this.auto || (this.v.y > 0.3 && this.v.clone().normalize().dot(toMouth.clone().normalize()) > 0.6))) tmp.addScaledVector(toMouth.normalize(), 2.5);
     this.v.lerp(tmp, Math.min(1, dt * 5));
     this.p.addScaledVector(this.v, dt);
     const m = 0.55;
@@ -456,6 +483,7 @@ export class TankMode {
     for (const n of this.npcs) {
       let over = null;
       if (n === this.lady && this.courtT > 0) { const a = this.t * 1.6; over = new THREE.Vector3(LEAF.x + Math.cos(a) * 1.0, SURF - 0.8, LEAF.z + Math.sin(a) * 0.8); }
+      if (this.partyT > 0) { const k = this.npcs.indexOf(n) + 1, a = this.t * 1.3 + k * (Math.PI * 2 / (this.npcs.length + 1)); over = new THREE.Vector3(Math.cos(a) * 2.8, 0.6 + Math.sin(a * 2 + k) * 0.6, 0.6 + Math.sin(a) * 1.5); }
       n.update(dt, over);
     }
     this.updateFry(dt);
@@ -467,12 +495,18 @@ export class TankMode {
     if (this.leaf.visible) { const cn = progress.canNest(this.id); this.leafMat.emissive.set(cn ? 0xffe9a8 : 0x7ac050); this.leafMat.emissiveIntensity = cn ? 0.5 + 0.3 * Math.sin(this.t * 4) : 0.45; if (cn && Math.random() < dt * 4) this.fx.emit({ x: LEAF.x + (Math.random() - 0.5) * 1.2, y: SURF - 0.4, z: LEAF.z + (Math.random() - 0.5) * 0.8, vy: 0.5, life: 1, size: 0.18, shape: 'spark', color: 0xfff0a0, alpha: 0.9 }); }
     for (const pr of this.props) if (pr.userData.sway !== undefined) pr.rotation.z = Math.sin(this.t * 0.8 + pr.userData.sway) * 0.04;
     if (this.bubbleOut) this.bubbleOut.visible = progress.s.roomFound;
+    if (this.partyT > 0) {
+      const hcol = new THREE.Color().setHSL((this.t * 0.45) % 1, 0.9, 0.6);
+      this.sun.color.copy(hcol); this.hemi.color.copy(hcol).lerp(new THREE.Color(0xffffff), 0.5);
+      if (Math.random() < dt * 30) this.fx.emit({ x: (Math.random() - 0.5) * W * 0.9, y: SURF - 0.3, z: (Math.random() - 0.5) * D * 0.8, vy: -0.6 - Math.random(), life: 2.4, size: 0.34, shape: ['star', 'heart', 'spark', 'bubble'][(Math.random() * 4) | 0], color: new THREE.Color().setHSL(Math.random(), 0.8, 0.7), wobble: 0.8, drag: 0.3 });
+      if (Math.random() < dt * 8) this.fx.emit({ x: (Math.random() - 0.5) * W * 0.8, y: Y0 + 0.4, z: (Math.random() - 0.5) * D * 0.8, vy: 1.2, rise: 0.5, life: 3, size: 0.18, color: 0xffffff, alpha: 0.8, wobble: 0.6 });
+    }
     this.fx.update(dt);
     // tube entry: generous capture from below
     if (!this.demo && !this.enteringTube) {
       const dxz = Math.hypot(head.x - MOUTH.x, head.z - MOUTH.z);
       this.tubeCool -= dt;
-      if (dxz < 1.0 && head.y > MOUTH.y - 0.6 && this.tubeCool <= 0 && !locked && (this.v.y > 0.15 || this.wantTube || this.auto)) { this.enteringTube = true; this.marker.visible = false; this.ctx.leaveTank(this.id); }
+      if (dxz < 1.0 && head.y > MOUTH.y - 0.6 && this.tubeCool <= 0 && !locked && (this.leftMouth || this.wantTube) && (this.v.y > 0.15 || this.wantTube || this.auto)) { this.enteringTube = true; this.marker.visible = false; this.ctx.leaveTank(this.id); }
     }
     this.wantTube = false;
     if (!this.demo && this.id === 'cw-home') {
@@ -595,26 +629,39 @@ export class TankMode {
     if (this.demo) target.set(Math.sin(this.t * 0.1) * 2, 0.6, Z1 - 0.6);
     this.focus = (this.building || this.courtT > 0 || this.celebrateT > 0) && !progress.s.settings.reduceMotion ? LEAF : null;
     if (this.focus) target.set(LEAF.x - 2.2, SURF - 2.4, Math.min(Z1 - 0.5, LEAF.z + 2.6));
+    const partyCam = this.partyT > 0 && !progress.s.settings.reduceMotion;
+    if (partyCam) target.set(Math.sin(this.t * 0.4) * 1.5, 1.0, Z1 + 3.0);
     if (dt >= 1) this.camPos.copy(target); else this.camPos.lerp(target, Math.min(1, dt * 5));
     this.camera.position.copy(this.camPos);
     if (this.demo) this.camera.lookAt(0, -0.3, -2);
+    else if (partyCam) this.camera.lookAt(0, 0.2, 0);
     else if (this.focus) this.camera.lookAt(LEAF.x, LEAF.y - 0.4, LEAF.z);
     else this.camera.lookAt(this.lookAtV.lerp(new THREE.Vector3(Math.sin(this.yaw), 0, Math.cos(this.yaw)).multiplyScalar(0.7).add(this.p), dt >= 1 ? 1 : Math.min(1, dt * 6)));
   }
 
+  nearLeaf(h) { return Math.hypot(h.x - LEAF.x, h.z - LEAF.z) < 3.0 && h.y > 0; }
+  canParty() { return progress.s.collected.length >= 5 && this.partyT <= 0 && this.partyCool <= 0 && !this.building && !(this.courtT > 0); }
+  startParty() {
+    if (!this.canParty()) return;
+    this.partyT = 7; this.waypoint = null; this.auto = null;
+    audio.sting('music-party'); audio.sfx('frenzy');
+    for (let i = 0; i < 4; i++) this.fx.burst((i - 1.5) * 2.5, 1.5, 0.5, 24, { shape: ['star', 'heart', 'spark', 'bubble'][i], color: new THREE.Color().setHSL(i / 4, 0.85, 0.65), size: 0.4, speed: 2.5, life: 1.6 });
+    this.ctx.toast('Tank Party!', 'star');
+  }
+  endParty() { this.partyCool = 8; this.sun.color.set(this.sunColor); this.hemi.color.set(this.hemiColor); for (const n of this.npcs) n.pick(); }
   currentAction() {
-    if (this.building || this.courtT > 0) return null;
+    if (this.building || this.courtT > 0 || this.partyT > 0) return null;
     const node = this.node, t = progress.s.tanks[this.id];
     const head = this.head || this.p;
     // nest
-    if (progress.canNest(this.id) && head.distanceTo(LEAF) < 2.2) {
+    if (progress.canNest(this.id) && this.nearLeaf(head)) {
       const z = Z(node);
       const afford = progress.s.bites >= z;
       return { id: 'nest', label: afford ? `Build bubble nest: ${z} ${(z) === 1 ? 'bite' : 'bites'}` : `Need ${z - progress.s.bites} more ${(z - progress.s.bites) === 1 ? 'bite' : 'bites'}`, disabled: !afford };
     }
     if (this.young && head.distanceTo(this.young.p) < 2.5) return { id: 'become', label: `Become ${FISH_BY_ID[node.son].name}` };
     if (this.bubbleOut?.visible && head.distanceTo(BUBBLE_OUT) < 2.2) return { id: 'bubbleout', label: 'Bubble out to the Fish Room' };
-    if (this.afterAction || (this.feederBites > 0 && this.bitesLeft === 0)) return { id: 'pipes', label: 'Back to the pipes' };
+    if (this.canParty() && !this.tubeLocked()) return { id: 'party', label: 'Tank Party!' };
     return null;
   }
 
@@ -630,6 +677,7 @@ export class TankMode {
     if (id === 'become') { this.ctx.becomeFish(this.node.son, this.id); return; }
     if (id === 'bubbleout') { this.ctx.toRoom('bubbleout', this.id); return; }
     if (id === 'pipes') { this.goTube(); return; }
+    if (id === 'party') { this.startParty(); return; }
   }
 
   // change player fish in place (after becoming)
@@ -640,12 +688,15 @@ export class TankMode {
     this.fx.burst(this.p.x, this.p.y, this.p.z, 30, { shape: 'star', color: def.trail, size: 0.3, speed: 2, life: 1.2 });
     // the young fish becomes the player: remove the npc
     if (this.young) { this.scene.remove(this.young.fish.group); this.npcs = this.npcs.filter(n => n !== this.young); this.p.copy(this.young.p); this.young = null; }
+    for (const sw of this.school.filter(sw => sw.fish.def.id === def.id)) { this.scene.remove(sw.fish.group); this.npcs = this.npcs.filter(n => n !== sw); }
+    this.school = this.school.filter(sw => sw.fish.def.id !== def.id);
     this.refreshResidents();
     this.refreshFry();
   }
   refreshResidents() {
-    for (const n of this.npcs.filter(n => n !== this.lady && n !== this.young)) { this.scene.remove(n.fish.group); }
-    this.npcs = this.npcs.filter(n => n === this.lady || n === this.young);
+    const keep = (n) => n === this.lady || n === this.young || n === this.friend || this.school.includes(n);
+    for (const n of this.npcs.filter(n => !keep(n))) { this.scene.remove(n.fish.group); }
+    this.npcs = this.npcs.filter(keep);
     for (const [fid, home] of Object.entries(progress.s.fishHome)) {
       if (home !== this.id || fid === progress.s.fish) continue;
       const f = new Fish(getBody('male'), FISH_BY_ID[fid], { shadow: true });
@@ -658,12 +709,12 @@ export class TankMode {
     const node = this.node, t = progress.s.tanks[this.id];
     const fs = progress.fryStatus(this.id);
     let line = '';
-    if (node.kind === 'home') line = 'Your tank';
-    else if (!t?.claimed) { const near = this.head && this.head.distanceTo(LEAF) < 2.2; line = near ? `Build the nest here: ${Z(node)} ${(Z(node)) === 1 ? 'bite' : 'bites'}` : (node.kind === 'lady' ? `${LADIES[node.lady].name} is waiting. Swim to the leaf to nest: ${Z(node)} ${(Z(node)) === 1 ? 'bite' : 'bites'}` : `Swim to the leaf to claim it: ${Z(node)} ${(Z(node)) === 1 ? 'bite' : 'bites'}`); }
+    if (node.kind === 'home') line = FRIENDS[this.id] ? `Your tank. ${FRIENDS[this.id].name} lives here too.` : 'Your tank';
+    else if (!t?.claimed) { const near = this.head && this.nearLeaf(this.head); line = near ? `Build the nest here: ${Z(node)} ${(Z(node)) === 1 ? 'bite' : 'bites'}` : (node.kind === 'lady' ? `${LADIES[node.lady].name} is waiting. Swim to the leaf to nest: ${Z(node)} ${(Z(node)) === 1 ? 'bite' : 'bites'}` : `Swim to the leaf to claim it: ${Z(node)} ${(Z(node)) === 1 ? 'bite' : 'bites'}`); }
     else if (fs?.stage === 'eggs') line = `Eggs: hatch in ${fs.left} ${fs.left === 1 ? 'bite' : 'bites'}`;
     else if (fs?.stage === 'fry') line = `Fry: grown in ${fs.left} ${fs.left === 1 ? 'bite' : 'bites'}`;
     else if (fs?.stage === 'grown') line = `${FISH_BY_ID[node.son].name} is grown! Swim over to become him.`;
-    else line = 'Your tank';
+    else line = FRIENDS[this.id] ? `Your tank. ${FRIENDS[this.id].name} lives here too.` : 'Your tank';
     return { name: node.name, line };
   }
 
@@ -672,6 +723,12 @@ export class TankMode {
     const v = MOUTH.clone().add(new THREE.Vector3(0, -0.5, 0)).project(this.camera);
     return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight, on: v.z < 1 && Math.abs(v.x) < 1 && Math.abs(v.y) < 1, nx: v.x, ny: v.y, behind: v.z > 1 };
   }
+  promptPoint() {
+    if (this.partyT > 0 || this.focus) return { ok: false, hide: true };
+    const q = this.p.clone().project(this.camera);
+    return { x: (q.x + 1) / 2 * innerWidth, y: (1 - q.y) / 2 * innerHeight, ok: q.z < 1 && Math.abs(q.x) < 1 && Math.abs(q.y) < 1 };
+  }
+  goLeaf() { this.setWaypoint(LEAF.clone().add(new THREE.Vector3(0, -0.5, 0)), 'leaf'); }
   screenPoints() {
     const pr = (v) => { const q = v.clone().project(this.camera); return [Math.round((q.x + 1) / 2 * innerWidth), Math.round((1 - q.y) / 2 * innerHeight), q.z < 1 && Math.abs(q.x) < 1 && Math.abs(q.y) < 1]; };
     return { bites: this.biteData.filter(b => b.alive).map(b => pr(b.p)), tube: pr(MOUTH.clone().add(new THREE.Vector3(0, -0.3, 0))), fish: pr(this.p) };

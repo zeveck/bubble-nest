@@ -918,3 +918,41 @@ Problem: steering by pointer offset while holding the button felt indirect; the 
 - [ ] nn-m7 exit 3 is sealed below 15 bettas and open at 15; the Grand Maze passes make-mazes; King Claw can be beaten; reward saved; solve() crosses nn-m7's new exit pairs.
 - [ ] School follows in every world with no errors; off in Settings works.
 - [ ] All 170+ exit pairs and the fast e2e run still pass.
+
+## Change 2: solid enemies, flare on demand, tank life, prompts near the fish
+
+Request (exactly as typed): "The enemies aren't threatening enough. They should block your passage and cause you to flinch back, so you can't just pass through them. They knock down your food amount. You can spend food to temporarily "flare" and when flared you can eat all enemies. Your line of fish should all fan out in any tank. All tanks should have a female betta. There should be a Tank Party button once you have five or more bettas that has all the bettas in the tank have a brief party. The button in the lower right is sometimes hard notice -- such commands should probably appear nearer the fish? It's too easy after entering a tank to accidentally go right back up the pipe. It's sometimes hard to get to the leaf, not sure if better controls or a bigger region or what."
+
+### Solid enemies (pipes)
+
+- Enemies are solid. Touching one (centres within 0.6 cell) while not flared: you **flinch back**: you reverse, are pushed back to the centre of the cell behind you, and are dazed for 0.35 s. You lose 3 / 5 / 8 bites (World 1 / 2 / 3; King Claw 10) unless you're in the 1.2 s safety after a hit. The enemy reverses too, so you separate. There is no passing through, even during safety: a flinch always happens.
+- Half of the lost bites drop behind you along the corridor (as before) and can be re-grabbed for 4 s.
+- Arriving in a maze: 1.5 s safety (no bite loss); enemies spawn ≥ 6 cells from exits.
+
+### Flare on demand
+
+- **Space or F** (desktop) or the **Flare** button (touch, bottom-right, 80 px, shows the cost) spends bites to flare: 6 / 10 / 15 bites (World 1 / 2 / 3, Grand Maze 15). Can't flare with too few bites (the button greys out and shows how many more you need; a "deny" sound).
+- Brine shrimp still give a free flare.
+- While flared (6 / 5 / 4.5 s; 6 s in the Grand Maze) enemies turn pale and flee, and touching one **eats** it: a chomp, a burst, +5 bites, and it reappears at its spawn 8 s later (faded in, harmless for 1 s). King Claw: eating him counts as a bump (three to beat him; one per flare).
+- Desktop HUD: "Space: flare (6)" hint next to the bites counter in pipes.
+
+### Tanks: your school, a female in every tank, Tank Party
+
+- **Your school fans out:** in any tank, up to 4 of your collected bettas (the same ones that follow you in the pipes, minus any that already live in this tank) come out of the tube after you and spread out to swim around the tank.
+- **A female betta in every tank:** lady tanks keep their lady. Home tanks and empty tanks get a friendly female who lives there (she doesn't lay eggs): Coral (Home Tank), Fern (Mossy Tank), Poppy (Pebble Tank), Saffron (Copperworks Home), Juniper (Kettle Tank), Marina (Hearth Tank), Tansy (Neon Night Home), Wren (Moonbeam Tank), Nell (Lantern Tank). Colours are muted like the other ladies.
+- **Tank Party:** once you've collected 5 bettas, any tank offers "Tank Party!" (prompt near the fish when nothing else is offered, and a party button in the tank HUD). For 7 s every fish in the tank (you, your school, the female, residents, the young fish) swims a ring dance round the middle, the lights cycle colours, confetti bubbles and hearts burst, and a party jingle plays; the camera pulls back to show everyone. Then everyone goes back to swimming. Repeatable (8 s cooldown). Reduce motion keeps the camera still.
+
+### Prompts near the fish
+
+- In tanks and the room, the action ("Build bubble nest: 25 bites", "Become Sky", "Tank Party!", "Back to the pipes", "Dock") appears as a floating button just above your fish on screen (clamped inside the screen, clear of the top HUD), with the key shown on desktop ("E"). It's tappable and clickable. The bottom-right action button is gone in tanks and the room.
+
+### Tube and leaf
+
+- **No accidental re-entry:** arriving from a pipe, the fish pops out of the mouth heading down and away and drifts to 2.5 u below and beside it. The tube won't take you back until you've been more than 2.2 u from the mouth, and then only by swimming up into it, tapping it, or the "To the pipes" sign.
+- **Easier leaf:** the nest action is offered anywhere within 3 u (horizontally) of the leaf in the upper half of the tank, and tapping the leaf or the "Nest spot" sign swims you right under it.
+
+### Testing
+
+- `__game.peaceful(true)` turns enemy collisions off for the exit-pair autopilot (it tests the maze graph, not dodging); separate scripted checks cover: a collision flinches and costs bites, safety stops repeat losses, spending bites flares, flared eats an enemy (+5) and it respawns, King Claw by eating.
+- Tank checks: school count in tank, a female present in every tank type, Tank Party plays and ends, prompt is near the fish, arriving and swimming freely for 5 s never re-enters the tube, the nest action appears within 3 u of the leaf.
+- All exit pairs and the fast e2e run pass.

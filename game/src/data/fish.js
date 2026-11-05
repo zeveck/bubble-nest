@@ -50,3 +50,14 @@ export const LADIES = Object.fromEntries(LADY_LIST.map(([id, name, son], i) => {
   const s = FISH_BY_ID[son];
   return [id, { id, name, son, fins: 'female', bodyA: mute(s.bodyA), bodyB: mute(s.bodyB), finA: mute(s.finA), finB: mute(s.finB), accent: mute(s.accent, 0.6, 0.15), sheen: mute(s.sheen), pattern: s.pattern, seed: 0.13 * i + 0.2 }];
 }));
+
+// A friendly female betta who lives in each home and empty tank (she doesn't lay eggs).
+const FRIEND_LIST = [
+  ['cw-home', 'coral', 'Coral', 'rosette'], ['cw-empty-1', 'fern', 'Fern', 'kiwi'], ['cw-empty-2', 'poppy', 'Poppy', 'mango'],
+  ['cp-home', 'saffron', 'Saffron', 'bronze'], ['cp-empty-1', 'juniper', 'Juniper', 'cobalt'], ['cp-empty-2', 'marina', 'Marina', 'koi'],
+  ['nn-home', 'tansy', 'Tansy', 'violet'], ['nn-empty-1', 'wren', 'Wren', 'galaxy'], ['nn-empty-2', 'nell', 'Nell', 'neon'],
+];
+export const FRIENDS = Object.fromEntries(FRIEND_LIST.map(([tank, id, name, look], i) => {
+  const s = FISH_BY_ID[look];
+  return [tank, { id, name, fins: 'female', bodyA: mute(s.bodyA, 0.7, 0.18), bodyB: mute(s.bodyB, 0.7, 0.18), finA: mute(s.finA, 0.7, 0.15), finB: mute(s.finB, 0.7, 0.15), accent: mute(s.accent, 0.6, 0.15), sheen: mute(s.sheen), pattern: s.pattern, seed: 0.17 * i + 0.4 }];
+}));
