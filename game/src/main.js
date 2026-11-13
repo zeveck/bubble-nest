@@ -375,7 +375,7 @@ addEventListener('keydown', (e) => {
   list[n].focus();
 });
 addEventListener('keydown', (e) => {
-  if (reportOpen(e) || e.ctrlKey || e.metaKey) return;      // typing a bug report, or a Ctrl/Cmd shortcut
+  if (reportOpen(e)) return;      // the player is typing a bug report
   if (modeName === 'boot' || modeName === 'title') return;
   const okBtn = ui.isOpen && ui.screen.querySelector('.celebrate [data-a=ok]');
   if (okBtn && ['Escape', 'KeyP', 'Tab', 'Enter', 'Space'].includes(e.code)) { e.preventDefault(); okBtn.click(); return; }

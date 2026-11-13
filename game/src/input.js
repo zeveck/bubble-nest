@@ -35,7 +35,6 @@ export const input = {
     const first = () => { if (!this.anyInput) { this.anyInput = true; this.onFirstInput?.(); } };
     addEventListener('keydown', (e) => {
       if (reportOpen(e)) return;
-      if (e.ctrlKey || e.metaKey) return;   // Ctrl/Cmd shortcuts (like Ctrl+Shift+L, report a bug) never reach the game
       first();
       if (PREVENT.has(e.code)) e.preventDefault();
       if (e.repeat) return;
