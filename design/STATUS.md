@@ -51,6 +51,8 @@
 
 - Update published (Changes 3 and 4, new social card, gallery text 47): "yes"
 
+- Update published (Change 5, "Report a bug"): `/gamegen --feedback on --publish --no-confirm`, run for the owner
+
 ## Phases
 
 - [x] 1 Brief: written (BRIEF.md)
@@ -107,4 +109,4 @@
 
 - [x] Bundled gh-feedback, button in pause menu and Settings, Ctrl+Shift+L (F is a game key), issue form
 - [x] Play-test: feedback checks 1-7 and 9 (8 is for hidden) at 1280x720 and iPhone 15 sideways/upright; 174/174 exit pairs (peaceful) and the enemies-on replay with 0 accidental opens; no console errors; README
-- [ ] Publish (label, issues on, push, deploy, live check)
+- [x] Published 2026-11-13 (player-report label added, issues already on; deploy of 22d5b83 passed; live form opens and links to zeveck/bubble-nest)
