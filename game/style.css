@@ -243,3 +243,7 @@ svg { width: 100%; height: 100%; display: block; }
 .wtab { flex: 1; border: 3px solid var(--teal); background: #fff; border-radius: 999px; padding: 4px 8px; font: inherit; font-size: 14px; font-weight: 600; color: inherit; white-space: nowrap; }
 .wtab small { font-weight: 500; opacity: .7; }
 .wtab.on { background: var(--teal); color: #fff; }
+
+/* "Report a bug" (gh-feedback): the game's cream panels, teal and Fredoka; and typing must work */
+gh-feedback { -webkit-user-select: text; user-select: text; touch-action: auto; font-family: 'Fredoka', system-ui, sans-serif; --gh-feedback-bg: #fff7ea; --gh-feedback-text: #1d3340; --gh-feedback-border: #9fd6d8; --gh-feedback-input-bg: #ffffff; }
+.panel p.keys { flex: none; margin: 12px 0 0; text-align: center; font-size: 15px; color: #4a6a72; }

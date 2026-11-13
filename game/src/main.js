@@ -5,7 +5,7 @@ import { MAZES } from './data/mazes.js';
 import { FISH, FISH_BY_ID } from './data/fish.js';
 import { loadBody, Fish, getBody } from './fishmodel.js';
 import { loadAll, loadStats } from './assets.js';
-import { input, isTouch } from './input.js';
+import { input, isTouch, reportOpen } from './input.js';
 import { audio } from './audio.js';
 import { progress, WORLD_BY_ID } from './progress.js';
 import { UI } from './ui.js';
@@ -133,10 +133,56 @@ const ctx = {
   titleAction(a) { titleAction(a); },
   applySettings() { applySettings(); },
   resetSave() { progress.resetAll(); progress.save(true); location.reload(); },
+  showReport: false,
+  report() { openReport(); },
 };
 const ui = new UI(ctx);
 ctx.ui = ui;
 const modes = { tank: new TankMode(ctx), pipe: new PipeMode(ctx), room: new RoomMode(ctx) };
+
+// ---------- "Report a bug" (gh-feedback) ----------
+const fb = document.getElementById('report');
+const FEEDBACK_KEY = 'bubble-nest-feedback';
+if (Q.has('feedback')) {
+  try {
+    if (Q.get('feedback') === 'off') localStorage.removeItem(FEEDBACK_KEY);
+    else localStorage.setItem(FEEDBACK_KEY, '1');
+  } catch { }
+}
+const FEEDBACK = 'on';                            // 'on' or 'hidden' (design/STATUS.md)
+ctx.showReport = !!fb?.getAttribute('repo') &&
+  (FEEDBACK === 'on' || (!window.desktop && (() => { try { return localStorage.getItem(FEEDBACK_KEY) === '1'; } catch { return false; } })()));
+// the picture sent with a report: the last game frame, taken as the game pauses (WebGL: right after rendering)
+let pauseShot = null;
+const grab = () => { try { render(); } catch { } return new Promise((r) => canvas.toBlob(r, 'image/png')); };
+function snapshot() { pauseShot = grab(); }
+const reportErrors = [];
+const keepError = (m) => { reportErrors.push(String(m).replace(/\s+/g, ' ').slice(0, 200)); reportErrors.splice(0, reportErrors.length - 5); };
+addEventListener('error', (e) => keepError(e.message));
+addEventListener('unhandledrejection', (e) => keepError(e.reason?.message ?? e.reason));
+const flat = (v) => String(v).replace(/\s+/g, ' ');
+function openReport() { fb?.open(); }
+if (fb) {
+  fb.getScreenshot = () => (paused && pauseShot) || grab();
+  fb.getContext = () => ({
+    game: 'Bubble Nest',
+    address: location.origin + location.pathname,
+    updated: document.lastModified,
+    build: window.desktop ? `desktop app (${window.desktop.platform})` : 'web',
+    browser: navigator.userAgent,
+    screen: `${innerWidth}x${innerHeight} @${devicePixelRatio}x`,
+    input: isTouch() ? 'touch' : 'mouse and keyboard',
+    state: flat(JSON.stringify({
+      screen: ui.isOpen ? (ui.screen.querySelector('h2')?.textContent || 'menu') : modeName,
+      mode: modeName, at: modeName === 'title' ? progress.s.at : ctx.where(), fish: progress.s.fish, bites: progress.s.bites,
+      collected: progress.s.collected.length, worlds: progress.s.worlds, flares: progress.s.flares, paused,
+    })),
+    errors: reportErrors.join(' | ') || 'none',
+  });
+  if (window.desktop) fb.openLink = (url) => { window.open(url, '_blank'); return true; };
+}
+// Ctrl+Shift+L (set up in index.html) pauses the game first, the usual way
+window.reportShortcut = () => pauseGame();
 
 function applySettings() {
   const st = progress.s.settings;
@@ -212,6 +258,7 @@ function doBecome(fid, tankId) {
   audio.sfx(first ? 'newfish' : 'star');
   ui.refresh();
   if (first) {
+    if (!paused) snapshot();
     paused = true;
     ui.setAction(null);
     ui.card({ title: `You are ${FISH_BY_ID[fid].name}!`, sub: `${FISH_BY_ID[fid].line} ${progress.s.collected.length} / ${FISH.length} bettas collected.`, fish: fid, onDone: () => { ui.close(); paused = false; if (progress.s.won && !progress.s.seen.victory) startVictory(); } });
@@ -257,15 +304,16 @@ function showTip(key) {
 // ---------- menus ----------
 function toggleMute() { progress.s.settings.muted = !progress.s.settings.muted; applySettings(); progress.save(true); ui.toast(progress.s.settings.muted ? 'Sound off' : 'Sound on', progress.s.settings.muted ? 'mute' : 'sound'); }
 ctx.toggleMute = toggleMute;
-function resumeBack() { ui.close(); paused = false; audio.duck(false); input.clear(); if (modeName === 'pipe') mode.flareArmed = false; }
-function pauseGame() { if (paused || modeName === 'boot' || modeName === 'title') return; paused = true; input.clear(); audio.duck(true); ui.pause(); }
-function openMap() { paused = true; input.clear(); audio.duck(true); ui.map(resumeBack); }
+function resumeBack() { ui.close(); paused = false; pauseShot = null; audio.duck(false); input.clear(); if (modeName === 'pipe') mode.flareArmed = false; }
+function pauseGame() { if (paused || modeName === 'boot' || modeName === 'title') return; snapshot(); paused = true; input.clear(); audio.duck(true); ui.pause(); }
+function openMap() { if (!paused) snapshot(); paused = true; input.clear(); audio.duck(true); ui.map(resumeBack); }
 function pauseAction(a) {
   if (a === 'resume') return resumeBack();
   if (a === 'map') return ui.map(() => ui.pause());
   if (a === 'collection') return ui.collection(() => ui.pause(), { inGame: true });
   if (a === 'help') return ui.help(() => ui.pause());
   if (a === 'settings') return ui.settings(() => ui.pause());
+  if (a === 'report') return openReport();
   if (a === 'title') { progress.save(true); location.href = location.pathname + location.search; }
 }
 function titleAction(a) {
@@ -316,7 +364,18 @@ function frame(now) {
   render();
 }
 
+// menus by keyboard: Up and Down move between the buttons, Enter picks one
 addEventListener('keydown', (e) => {
+  if (reportOpen(e) || !ui.isOpen || (e.code !== 'ArrowUp' && e.code !== 'ArrowDown')) return;
+  const list = [...ui.screen.querySelectorAll('button, input, a[href]')].filter(el => el.offsetParent !== null && !el.disabled);
+  if (!list.length) return;
+  e.preventDefault();
+  const i = list.indexOf(document.activeElement);
+  const n = i < 0 ? (e.code === 'ArrowDown' ? 0 : list.length - 1) : (i + (e.code === 'ArrowDown' ? 1 : -1) + list.length) % list.length;
+  list[n].focus();
+});
+addEventListener('keydown', (e) => {
+  if (reportOpen(e) || e.ctrlKey || e.metaKey) return;      // typing a bug report, or a Ctrl/Cmd shortcut
   if (modeName === 'boot' || modeName === 'title') return;
   const okBtn = ui.isOpen && ui.screen.querySelector('.celebrate [data-a=ok]');
   if (okBtn && ['Escape', 'KeyP', 'Tab', 'Enter', 'Space'].includes(e.code)) { e.preventDefault(); okBtn.click(); return; }

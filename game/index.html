@@ -34,6 +34,21 @@
 <div id="ui"></div>
 <div id="boot" class="screen title-bg"><div class="loading"><div class="logo">Bubble Nest</div><div class="bar"><i style="width:0%"></i></div><p>Filling the tanks…</p></div></div>
 <div id="rotate" class="rotate"><div><svg viewBox="0 0 64 64" width="72" height="72"><rect x="18" y="6" width="28" height="52" rx="6" fill="none" stroke="currentColor" stroke-width="4"/><path d="M54 22 a20 20 0 0 1 4 18" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round"/><path d="M52 36 l6 6 5-8" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg><p>Turn your phone sideways to swim</p></div></div>
+<script>
+  // Ctrl+Shift+L opens "Report a bug" from anywhere, even if the game is stuck (F is the game's flare and dive key)
+  addEventListener('keydown', (e) => {
+    if (!e.ctrlKey || !e.shiftKey || e.altKey || e.metaKey || e.key.toLowerCase() !== 'l') return;
+    const fb = document.getElementById('report');
+    if (!fb?.getAttribute('repo') || document.activeElement === fb) return;
+    e.preventDefault();
+    e.stopImmediatePropagation();
+    try { window.reportShortcut?.(); } catch {}
+    fb.open();
+  }, true);
+</script>
+<script type="module" src="vendor/gh-feedback.js"></script>
 <script type="module" src="src/main.js"></script>
+<gh-feedback id="report" trigger="none" repo="zeveck/bubble-nest" template="bug.yml"
+  types="bug,feature" theme="light" color="#2bb3c0" popup-color="#2bb3c0"></gh-feedback>
 </body>
 </html>

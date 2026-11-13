@@ -5,6 +5,11 @@ const DIR_KEYS = {
   ArrowUp: 'U', KeyW: 'U', ArrowDown: 'D', KeyS: 'D', ArrowLeft: 'L', KeyA: 'L', ArrowRight: 'R', KeyD: 'R',
 };
 const PREVENT = new Set(['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space', 'Tab']);
+// "Report a bug" is open (focus is in it) or the event came from it: the player is typing, so the game ignores it
+export const reportOpen = (e) => {
+  const fb = document.getElementById('report');
+  return !!fb && (document.activeElement === fb || !!e?.composedPath?.().includes(fb));
+};
 
 export const input = {
   keys: new Set(),
@@ -29,6 +34,8 @@ export const input = {
     this.canvas = canvas;
     const first = () => { if (!this.anyInput) { this.anyInput = true; this.onFirstInput?.(); } };
     addEventListener('keydown', (e) => {
+      if (reportOpen(e)) return;
+      if (e.ctrlKey || e.metaKey) return;   // Ctrl/Cmd shortcuts (like Ctrl+Shift+L, report a bug) never reach the game
       first();
       if (PREVENT.has(e.code)) e.preventDefault();
       if (e.repeat) return;
@@ -39,6 +46,7 @@ export const input = {
     addEventListener('blur', () => this.clear());
     canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     canvas.addEventListener('pointerdown', (e) => {
+      if (reportOpen(e)) return;
       first();
       if (e.pointerType === 'touch') { this.touchSeen = true; this._touchStart(e); return; }
       canvas.setPointerCapture?.(e.pointerId);

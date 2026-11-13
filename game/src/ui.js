@@ -388,6 +388,7 @@ export class UI {
       <button class="btn" data-a="collection">Collection</button>
       <button class="btn" data-a="help">How to play</button>
       <button class="btn" data-a="settings">Settings</button>
+      ${this.ctx.showReport ? '<button class="btn" data-a="report">Report a bug</button>' : ''}
       <button class="btn" data-a="title">Title screen</button></div></div>`);
     s.querySelectorAll('[data-a]').forEach(b => b.onclick = () => { audio.sfx(b.dataset.a === 'resume' ? 'ui-back' : 'ui-click'); this.ctx.pauseAction(b.dataset.a); });
   }
@@ -400,7 +401,7 @@ export class UI {
         <section><h3>${ICON.arrows} Pipes</h3><p>${t ? 'Swipe to turn.' : 'Arrow keys or WASD to turn.'} Munch every bite for a star, without a bump for two. Enemies block the pipes: bump one and you flinch back and lose bites. Brine shrimp save up to two free flares. ${t ? 'Tap Flare' : 'Press Space'} whenever you choose: it uses a free flare, or spends bites. While you're flared you can eat them!</p></section>
         <section><h3>${ICON.heart} Nests and fry</h3><p>Swim to the floating leaf to build a bubble nest. Every tank's female lays eggs, which hatch and grow as you eat bites anywhere. Become each grown fry, and find the lost bettas hiding in the pipes, to collect all ${FISH.length}.</p></section>
         <section><h3>${ICON.star} Frenzy and worlds</h3><p>Nest with every lady in a world and fry there grow twice as fast. Find the bubble machine at the end of a world to reach the next one.</p></section>
-      </div><div class="row"><button class="btn primary" data-a="back">Back</button></div></div>`);
+      </div>${!t && this.ctx.showReport ? '<p class="keys">Action: E or Enter · Map: Tab · Pause: Esc or P · Mute: M · Report a bug: Ctrl+Shift+L</p>' : ''}<div class="row"><button class="btn primary" data-a="back">Back</button></div></div>`);
     s.querySelector('[data-a=back]').onclick = () => { audio.sfx('ui-back'); back(); };
   }
 
@@ -415,12 +416,13 @@ export class UI {
       <label class="set chk"><span>Reduce motion</span><input type="checkbox" ${st.reduceMotion ? 'checked' : ''} data-k="reduceMotion"></label>
       <label class="set chk"><span>Minimap in pipes</span><input type="checkbox" ${st.minimap ? 'checked' : ''} data-k="minimap"></label>
       <label class="set chk"><span>Your school follows you</span><input type="checkbox" ${st.school !== false ? 'checked' : ''} data-k="school"></label>
-      <div class="row"><button class="btn danger" data-a="reset">Reset save</button><button class="btn primary" data-a="back">Back</button></div></div>`);
+      <div class="row">${this.ctx.showReport ? '<button class="btn" data-a="report">Report a bug</button>' : ''}<button class="btn danger" data-a="reset">Reset save</button><button class="btn primary" data-a="back">Back</button></div></div>`);
     s.querySelectorAll('input').forEach(inp => inp.oninput = () => {
       const k = inp.dataset.k; st[k] = inp.type === 'checkbox' ? inp.checked : +inp.value;
       this.ctx.applySettings(); progress.save(true);
     });
     s.querySelector('[data-a=back]').onclick = () => { audio.sfx('ui-back'); back(); };
+    s.querySelector('[data-a=report]')?.addEventListener('click', () => { audio.sfx('ui-click'); this.ctx.report(); });
     s.querySelector('[data-a=reset]').onclick = () => {
       audio.sfx('ui-click');
       this.confirm('Erase all progress and start over?', () => { this.ctx.resetSave(); }, () => this.settings(back), 'Erase', 'Keep');
@@ -431,6 +433,7 @@ export class UI {
     const s = this.open(`<div class="panel"><h2>Credits</h2>
       <p class="cred"><b>Bubble Nest</b><br>A game idea by Rich Conlan.</p>
       <p class="cred">Built with three.js (MIT license).</p>
+      ${this.ctx.showReport ? '<p class="cred">"Report a bug" form: gh-feedback (MIT license).</p>' : ''}
       <p class="cred">Font: Fredoka (SIL Open Font License).</p>
       <div class="row"><button class="btn primary" data-a="back">Back</button></div></div>`);
     s.querySelector('[data-a=back]').onclick = () => { audio.sfx('ui-back'); back(); };
