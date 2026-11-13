@@ -33,6 +33,7 @@ Every adventure starts in a tank. Click or tap where you want to swim, eat the b
 - **In the pipes:** arrow keys or WASD to turn (or hold the mouse button). You keep swimming until you hit a wall. Snails, shrimp and friends block the pipes: bump one and you flinch back and lose a real chunk of bites (more in later worlds, and a bit more when you're carrying a lot). Brine shrimp save a free flare (you can hold two). Press Space (or tap **Flare**) whenever you choose: it uses a free flare, or spends a few bites. The music kicks into a flare track, the pipes blaze gold, and while you're flared you can eat them.
 - **Nests and fry:** exit signs show what's beyond and what a nest costs. Swim to the floating leaf to build a nest. Empty tanks become yours (with a feeder and a new bubble trail). Every tank's female betta lays eggs, including the friends in your home tanks; they hatch and grow as you eat bites anywhere, and then you can become the grown fry.
 - **Action:** E or Enter. **Map:** Tab. **Pause:** Esc or P. **Mute:** M.
+- **Found a bug?** Pause and pick "Report a bug", or press Ctrl+Shift+L (you'll need a GitHub account).
 - **On a phone** (sideways): tap to swim, drag to look, the stick on the left and the arrow buttons work too, and you swipe to turn in the pipes. You can install it from your browser's menu to play full screen, even offline.
 
 Enemies only knock bites out of you, so you can never lose. Progress saves automatically in your browser.
@@ -135,6 +136,17 @@ What changed:
 
 Three review agents (a player, an engineer and an art and sound director) checked the plan first. They caught a lot: wasted flares from mashing the button, a gold flare that would vanish in the copper world, look-alike fish, old saves that couldn't reach 47, and music that would have restarted after every flare. A bug hunter then went over the finished change. Every maze crossing, every lost betta, and a full playthrough to the 47-betta ending were tested.
 
+### The fifth update
+
+> /gamegen --feedback on --publish --no-confirm
+
+What changed:
+
+- **Report a bug:** the pause menu and Settings have a "Report a bug" button, and Ctrl+Shift+L opens it from anywhere. Write what went wrong, and it opens a GitHub issue in this repo, already filled in with the game's details, with a picture of the moment ready to paste. You'll need a GitHub account.
+- **Menus by keyboard:** Up and Down move between menu buttons, and Enter picks one.
+
+The form is [gh-feedback](https://github.com/zeveck/gh-feedback), bundled with gamegen. It was play-tested by mouse, keyboard and touch, at desktop and phone sizes, and every maze crossing was replayed while counting reports (none opened by accident).
+
 The design notes, reviews and asset log are in [`design/`](design/), and the maze layouts and their checker in [`tools/`](tools/).
 
 ## Playing locally
@@ -150,4 +162,5 @@ then open http://localhost:8000. (Browsers won't run it straight from the file.)
 
 - A game idea by Rich Conlan.
 - Built with [three.js](https://threejs.org) (MIT license, bundled in `game/vendor/`).
+- "Report a bug" uses [gh-feedback](https://github.com/zeveck/gh-feedback) (MIT license, bundled in `game/vendor/`).
 - Font: [Fredoka](https://github.com/hafontia/Fredoka-One), SIL Open Font License (`game/fonts/OFL.txt`).

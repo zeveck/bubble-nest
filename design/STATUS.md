@@ -26,6 +26,8 @@
 
 8. `--change instead of 20 there should be 47 bettas to collect across the levels. the user should choose when to flare. flaring should change the music and be otherwise obvious/exciting.`
 
+9. `/gamegen --feedback on --publish --no-confirm` (run for the owner on 2026-11-13)
+
 ## Settings
 
 - 3D: yes (asked for in so many words)
@@ -36,6 +38,8 @@
 - Rounds: 2
 - Folder: the project folder (was empty)
 - Credit: Rich Conlan (from GitHub)
+- Feedback: on
+- Making-of: on
 - Available: imagegen2, nanogen, audiogen (paid plan: 128 kbps worked; no credit line), meshgen (2,497 credits), playwright-cli, Pillow (installed this run)
 
 ## Published
@@ -98,3 +102,9 @@
 - [x] Flare music (two buses) + visuals (banner, vignette, shockwave, gold rims, aura, camera punch, timer ring)
 - [x] Collection by world (phone tabs), text says 47, Grand Maze 35 (old saves keep it open), victory at 47 (also mid-pipe)
 - [x] Bug hunt (8 findings fixed), economy sim, 174/174 routes, all 18 lost bettas found by sweep, fast e2e to 47 + victory, README
+
+## Change 5 ("Report a bug", `--feedback on`)
+
+- [x] Bundled gh-feedback, button in pause menu and Settings, Ctrl+Shift+L (F is a game key), issue form
+- [x] Play-test: feedback checks 1-7 and 9 (8 is for hidden) at 1280x720 and iPhone 15 sideways/upright; 174/174 exit pairs (peaceful) and the enemies-on replay with 0 accidental opens; no console errors; README
+- [ ] Publish (label, issues on, push, deploy, live check)
