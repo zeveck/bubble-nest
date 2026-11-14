@@ -181,7 +181,7 @@ if (fb) {
   });
   if (window.desktop) fb.openLink = (url) => { window.open(url, '_blank'); return true; };
 }
-// Ctrl+Shift+L (set up in index.html) pauses the game first, the usual way
+// Ctrl+Shift+F (set up in index.html) pauses the game first, the usual way
 window.reportShortcut = () => pauseGame();
 
 function applySettings() {

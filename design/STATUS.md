@@ -107,6 +107,8 @@
 
 ## Change 5 ("Report a bug", `--feedback on`)
 
-- [x] Bundled gh-feedback, button in pause menu and Settings, Ctrl+Shift+L (F is a game key), issue form
+- [x] Bundled gh-feedback, button in pause menu and Settings, Ctrl+Shift+F (F alone stays a game key), issue form
 - [x] Play-test: feedback checks 1-7 and 9 (8 is for hidden) at 1280x720 and iPhone 15 sideways/upright; 174/174 exit pairs (peaceful) and the enemies-on replay with 0 accidental opens; no console errors; README
 - [x] Published 2026-11-13 (player-report label added, issues already on; deploy of 22d5b83 passed; live form opens and links to zeveck/bubble-nest)
+
+- Report a bug: updated to the fixed form (gh-feedback 2026.11.14), and the shortcut is now Ctrl+Shift+F

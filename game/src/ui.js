@@ -401,7 +401,7 @@ export class UI {
         <section><h3>${ICON.arrows} Pipes</h3><p>${t ? 'Swipe to turn.' : 'Arrow keys or WASD to turn.'} Munch every bite for a star, without a bump for two. Enemies block the pipes: bump one and you flinch back and lose bites. Brine shrimp save up to two free flares. ${t ? 'Tap Flare' : 'Press Space'} whenever you choose: it uses a free flare, or spends bites. While you're flared you can eat them!</p></section>
         <section><h3>${ICON.heart} Nests and fry</h3><p>Swim to the floating leaf to build a bubble nest. Every tank's female lays eggs, which hatch and grow as you eat bites anywhere. Become each grown fry, and find the lost bettas hiding in the pipes, to collect all ${FISH.length}.</p></section>
         <section><h3>${ICON.star} Frenzy and worlds</h3><p>Nest with every lady in a world and fry there grow twice as fast. Find the bubble machine at the end of a world to reach the next one.</p></section>
-      </div>${!t && this.ctx.showReport ? '<p class="keys">Action: E or Enter · Map: Tab · Pause: Esc or P · Mute: M · Report a bug: Ctrl+Shift+L</p>' : ''}<div class="row"><button class="btn primary" data-a="back">Back</button></div></div>`);
+      </div>${!t && this.ctx.showReport ? '<p class="keys">Action: E or Enter · Map: Tab · Pause: Esc or P · Mute: M · Report a bug: Ctrl+Shift+F</p>' : ''}<div class="row"><button class="btn primary" data-a="back">Back</button></div></div>`);
     s.querySelector('[data-a=back]').onclick = () => { audio.sfx('ui-back'); back(); };
   }
 

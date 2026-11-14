@@ -97,9 +97,9 @@ the manifest asks for landscape. `contextmenu` is prevented on the canvas.
 | Stop | None: the fish keeps swimming until it hits a wall | n/a |
 | Map / Pause / Mute | Tab / Esc or P / M | Buttons top-right |
 
-**Report a bug:** Ctrl+Shift+L anywhere (both modes, and on the title screen),
-or "Report a bug" in the pause menu and Settings. Not F: F is the tank's dive
-key and the pipes' flare key. L isn't used by the game.
+**Report a bug:** Ctrl+Shift+F anywhere (both modes, and on the title screen),
+or "Report a bug" in the pause menu and Settings. F alone stays the tank's dive
+key and the pipes' flare key; only Ctrl+Shift+F opens the form.
 
 On every mode change held inputs and the turn buffer are cleared, and input
 is ignored during the 0.5 s bubble wipe.
@@ -1051,7 +1051,7 @@ Request (exactly as typed): `/gamegen --feedback on --publish --no-confirm` (run
 
 - The bundled gh-feedback form (`game/vendor/gh-feedback.js`, unchanged), `repo="zeveck/bubble-nest"`, light theme in the game's cream, ink and teal, Fredoka.
 - "Report a bug" in the pause menu (above "Title screen") and in Settings (so the title screen reaches it too), as the game's own `.btn` buttons. Up and Down move between menu buttons and Enter picks one, so every menu (and this button) works by keyboard.
-- Ctrl+Shift+L opens it from anywhere (its own script in `index.html`, before the game's code); it pauses the game first (`window.reportShortcut`).
+- Ctrl+Shift+F opens it from anywhere (its own script in `index.html`, before the game's code); it pauses the game first (`window.reportShortcut`).
 - While the form is open (focus in it), the game ignores keys and canvas touches. The picture is the last game frame, rendered and captured as the game pauses (cleared on resume); on the title it's the title scene.
 - `getContext`: game, address, updated, build, browser, screen, input, a one-line state (screen, mode, where, fish, bites, collected, worlds, flares, paused) and the last few errors.
-- How to play (keyboard) lists the keys, including "Report a bug: Ctrl+Shift+L".
+- How to play (keyboard) lists the keys, including "Report a bug: Ctrl+Shift+F".
